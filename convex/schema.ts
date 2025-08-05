@@ -21,6 +21,7 @@ export default defineSchema({
       }))),
       estimatedDuration: v.optional(v.number()), // in minutes
       isActive: v.boolean(),
+      allowedNextStageIds: v.optional(v.array(v.string())), // IDs of stages that can be advanced to
       assignedLocationIds: v.optional(v.array(v.id("locations"))),
     })),
     isActive: v.boolean(),

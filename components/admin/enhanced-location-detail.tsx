@@ -15,8 +15,8 @@ import {
     ExternalLink, Settings,
     Grid3X3,
     Layers,
-    Shelf,
-    Rack,
+    Package2,
+    PackageCheck,
     QrCode
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
@@ -42,8 +42,8 @@ interface EnhancedLocationDetailProps {
 
 const LOCATION_TYPE_ICONS = {
   bin: Package,
-  shelf: Shelf,
-  rack: Rack,
+  shelf: Package2,
+  rack: PackageCheck,
   area: Grid3X3,
   zone: Layers
 }

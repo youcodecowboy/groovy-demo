@@ -44,10 +44,12 @@ export default function FactoryItemDetailPage() {
     })
   }
 
-  // Get item by itemId (string identifier)
+  // Get item by itemId (string identifier) - check both active and completed items
   const convexItem = useQuery(api.items.getByItemId, { itemId })
+  const completedItem = useQuery(api.items.getCompletedByItemId, { itemId })
+  const completedHistory = useQuery(api.items.getCompletedHistory, { itemId })
   
-  // Convert Convex item to app format
+  // Convert Convex item to app format - handle both active and completed items
   const item = convexItem ? {
     id: convexItem._id,
     sku: convexItem.itemId,
@@ -61,22 +63,40 @@ export default function FactoryItemDetailPage() {
     completedAt: undefined, // Items don't have completedAt until moved to completedItems
     metadata: convexItem.metadata || {},
     history: [], // Will be populated separately if needed
+  } : completedItem ? {
+    id: completedItem.itemId,
+    sku: completedItem.itemId,
+    qrData: completedItem.qrCode || completedItem.itemId,
+    currentStageId: completedItem.finalStageId,
+    workflowId: completedItem.workflowId,
+    status: "completed" as const,
+    currentLocationId: completedItem.finalLocationId,
+    createdAt: new Date(completedItem.startedAt).toISOString(),
+    activatedAt: new Date(completedItem.startedAt).toISOString(),
+    completedAt: new Date(completedItem.completedAt).toISOString(),
+    metadata: completedItem.metadata || {},
+    history: completedHistory?.map(entry => ({
+      from: entry.action === "started" ? "" : entry.stageId,
+      to: entry.stageId,
+      at: new Date(entry.timestamp).toISOString(),
+      user: entry.userId || "Unknown",
+    })) || [],
   } : null
 
-  // Convert workflow to app format
-  const workflow = workflows?.find(w => w._id === convexItem?.workflowId) ? {
-    id: workflows.find(w => w._id === convexItem?.workflowId)!._id,
-    name: workflows.find(w => w._id === convexItem?.workflowId)!.name,
-    description: workflows.find(w => w._id === convexItem?.workflowId)!.description || "",
-    entryStageId: workflows.find(w => w._id === convexItem?.workflowId)!.stages[0]?.id || "",
-    stages: workflows.find(w => w._id === convexItem?.workflowId)!.stages.map((stage: any, index: number) => ({
+  // Convert workflow to app format - handle both active and completed items
+  const workflow = workflows?.find(w => w._id === (convexItem?.workflowId || completedItem?.workflowId)) ? {
+    id: workflows.find(w => w._id === (convexItem?.workflowId || completedItem?.workflowId))!._id,
+    name: workflows.find(w => w._id === (convexItem?.workflowId || completedItem?.workflowId))!.name,
+    description: workflows.find(w => w._id === (convexItem?.workflowId || completedItem?.workflowId))!.description || "",
+    entryStageId: workflows.find(w => w._id === (convexItem?.workflowId || completedItem?.workflowId))!.stages[0]?.id || "",
+    stages: workflows.find(w => w._id === (convexItem?.workflowId || completedItem?.workflowId))!.stages.map((stage: any, index: number) => ({
       id: stage.id,
       name: stage.name,
       description: stage.description || "",
       color: getStageColor(stage.name),
       order: stage.order,
       actions: stage.actions || [],
-      allowedNextStageIds: getNextStageIds(workflows.find(w => w._id === convexItem?.workflowId)!.stages, stage.order),
+      allowedNextStageIds: getNextStageIds(workflows.find(w => w._id === (convexItem?.workflowId || completedItem?.workflowId))!.stages, stage.order),
     })),
   } : null
 
@@ -154,8 +174,11 @@ export default function FactoryItemDetailPage() {
         return
       }
 
+      // Log the completed actions for debugging
+      console.log("Completed actions:", completedActions)
+
       // Check if any of the completed actions require a scan
-      const scanAction = completedActions?.find(action => action.type === "scan")
+      const scanAction = completedActions?.find(action => action.data && action.data.startsWith('item:'))
       
       if (scanAction) {
         // If there's a scan action, we need to handle it differently
@@ -168,12 +191,21 @@ export default function FactoryItemDetailPage() {
         return
       }
 
+      // Prepare notes from completed actions
+      const actionNotes = completedActions?.map(action => {
+        if (action.data && typeof action.data === 'object') {
+          return `${action.label}: ${JSON.stringify(action.data)}`
+        }
+        return action.label
+      }).join(", ")
+
       if (toStageId === "completed") {
         // Use advanceStage to complete the item (it will automatically detect final stage)
         await advanceStage({
           itemId: convexItem._id,
           userId: "floor@demo",
-          notes: completedActions?.map(action => action.label).join(", "),
+          notes: actionNotes,
+          actionData: completedActions, // Pass the detailed action data
         })
       } else {
         // Use advanceToStage for normal stage progression
@@ -181,7 +213,8 @@ export default function FactoryItemDetailPage() {
           itemId: convexItem._id,
           toStageId,
           userId: "floor@demo",
-          notes: completedActions?.map(action => action.label).join(", "),
+          notes: actionNotes,
+          actionData: completedActions, // Pass the detailed action data
         })
       }
       
@@ -190,6 +223,7 @@ export default function FactoryItemDetailPage() {
         description: toStageId === "completed" ? "Item completed successfully" : "Item advanced successfully",
       })
     } catch (error) {
+      console.error("Advance item error:", error)
       toast({
         title: "Error",
         description: "Failed to advance item",
@@ -243,7 +277,7 @@ export default function FactoryItemDetailPage() {
     }
   }
 
-  if (convexItem === undefined) {
+  if (convexItem === undefined && completedItem === undefined) {
     return (
       <div className="min-h-screen bg-gray-50">
         <FactoryHeader />
@@ -272,9 +306,9 @@ export default function FactoryItemDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <FactoryHeader />
-      <div className="container mx-auto px-4 py-6">
+      <div className="flex-1 container mx-auto px-4 py-6 overflow-y-auto">
         <ItemDetailView
           item={item}
           workflow={workflow}

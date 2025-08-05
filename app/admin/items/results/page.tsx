@@ -8,7 +8,7 @@ import { QRDisplay } from "@/components/ui/qr-display";
 import { AdminSidebar } from "@/components/layout/admin-sidebar";
 import { ArrowLeft, Printer, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 
 interface GeneratedItem {
   _id: string;
@@ -29,7 +29,7 @@ interface GeneratedItem {
   };
 }
 
-export default function ItemResultsPage() {
+function ItemResultsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
@@ -260,5 +260,19 @@ export default function ItemResultsPage() {
         </div>
       </div>
     </AdminSidebar>
+  );
+}
+
+export default function ItemResultsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-lg">Loading...</div>
+        </div>
+      </div>
+    }>
+      <ItemResultsContent />
+    </Suspense>
   );
 } 

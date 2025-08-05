@@ -11,14 +11,17 @@ export const updateLocation = mutation({
   handler: async (ctx, args) => {
     const now = Date.now();
     
+    // URL decode the itemId to handle spaces and special characters
+    const decodedItemId = decodeURIComponent(args.itemId);
+    
     // Find the item by itemId
     const item = await ctx.db
       .query("items")
-      .filter((q) => q.eq(q.field("itemId"), args.itemId))
+      .filter((q) => q.eq(q.field("itemId"), decodedItemId))
       .first();
     
     if (!item) {
-      throw new Error(`Item with ID ${args.itemId} not found`);
+      throw new Error(`Item with ID ${decodedItemId} not found`);
     }
     
     // Find the location by its name/ID string
@@ -103,9 +106,12 @@ export const getCompletedByWorkflow = query({
 export const getCompletedByItemId = query({
   args: { itemId: v.string() },
   handler: async (ctx, args) => {
+    // URL decode the itemId to handle spaces and special characters
+    const decodedItemId = decodeURIComponent(args.itemId);
+    
     return await ctx.db
       .query("completedItems")
-      .filter((q) => q.eq(q.field("itemId"), args.itemId))
+      .filter((q) => q.eq(q.field("itemId"), decodedItemId))
       .first();
   },
 });
@@ -134,9 +140,12 @@ export const getById = query({
 export const getByItemId = query({
   args: { itemId: v.string() },
   handler: async (ctx, args) => {
+    // URL decode the itemId to handle spaces and special characters
+    const decodedItemId = decodeURIComponent(args.itemId);
+    
     return await ctx.db
       .query("items")
-      .filter((q) => q.eq(q.field("itemId"), args.itemId))
+      .filter((q) => q.eq(q.field("itemId"), decodedItemId))
       .first();
   },
 });
@@ -330,6 +339,7 @@ export const advanceStage = mutation({
     itemId: v.id("items"),
     userId: v.optional(v.string()),
     notes: v.optional(v.string()),
+    actionData: v.optional(v.any()), // Store detailed action data
   },
   handler: async (ctx, args) => {
     const item = await ctx.db.get(args.itemId);
@@ -363,7 +373,10 @@ export const advanceStage = mutation({
       timestamp: now,
       userId: args.userId,
       notes: args.notes,
-      metadata: { stageOrder: currentStage.order },
+      metadata: { 
+        stageOrder: currentStage.order,
+        actionData: args.actionData, // Store detailed action data
+      },
     });
     
     await ctx.db.insert("itemHistory", {
@@ -499,6 +512,7 @@ export const advanceToStage = mutation({
     toStageId: v.string(),
     userId: v.optional(v.string()),
     notes: v.optional(v.string()),
+    actionData: v.optional(v.any()), // Store detailed action data
   },
   handler: async (ctx, args) => {
     const item = await ctx.db.get(args.itemId);
@@ -540,7 +554,10 @@ export const advanceToStage = mutation({
       timestamp: now,
       userId: args.userId,
       notes: args.notes,
-      metadata: { stageOrder: currentStage.order },
+      metadata: { 
+        stageOrder: currentStage.order,
+        actionData: args.actionData, // Store detailed action data
+      },
     });
     
     // Add to history - start target stage
@@ -891,11 +908,22 @@ export const assignItem = mutation({
 
 // Get item history
 export const getHistory = query({
-  args: { itemId: v.id("items") },
+  args: { itemId: v.string() },
   handler: async (ctx, args) => {
+    // First find the item by its string itemId
+    const item = await ctx.db
+      .query("items")
+      .filter((q) => q.eq(q.field("itemId"), args.itemId))
+      .first();
+    
+    if (!item) {
+      return []; // Return empty array if item not found
+    }
+    
+    // Then query history using the Convex ID
     return await ctx.db
       .query("itemHistory")
-      .filter((q) => q.eq(q.field("itemId"), args.itemId))
+      .filter((q) => q.eq(q.field("itemId"), item._id))
       .order("asc")
       .collect();
   },
@@ -905,9 +933,12 @@ export const getHistory = query({
 export const getCompletedHistory = query({
   args: { itemId: v.string() },
   handler: async (ctx, args) => {
+    // URL decode the itemId to handle spaces and special characters
+    const decodedItemId = decodeURIComponent(args.itemId);
+    
     return await ctx.db
       .query("completedItemHistory")
-      .filter((q) => q.eq(q.field("itemId"), args.itemId))
+      .filter((q) => q.eq(q.field("itemId"), decodedItemId))
       .order("asc")
       .collect();
   },
@@ -1135,6 +1166,113 @@ export const autoAssignToStageLocation = mutation({
     return { itemId: args.itemId, locationId: targetLocation._id };
   },
 }); 
+
+// Handle item entering a stage
+export const enterStage = mutation({
+  args: {
+    itemId: v.string(),
+    stageId: v.string(),
+    stageName: v.string(),
+    locationId: v.optional(v.string()),
+    assignedUserId: v.optional(v.string()),
+    enteredBy: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    
+    // Find the item by itemId
+    const item = await ctx.db
+      .query("items")
+      .filter((q) => q.eq(q.field("itemId"), args.itemId))
+      .first();
+    
+    if (!item) {
+      throw new Error(`Item with ID ${args.itemId} not found`);
+    }
+
+    // Update item's current stage
+    await ctx.db.patch(item._id, {
+      currentStageId: args.stageId,
+      updatedAt: now,
+    });
+
+    // Update item location if provided
+    if (args.locationId) {
+      const location = await ctx.db.get(args.locationId as any);
+      if (location) {
+        await ctx.db.patch(item._id, {
+          currentLocationId: args.locationId as any,
+        });
+      }
+    }
+
+    // Assign item to user if provided
+    if (args.assignedUserId) {
+      const user = await ctx.db.get(args.assignedUserId as any);
+      if (user) {
+        await ctx.db.patch(item._id, {
+          assignedTo: args.assignedUserId,
+        });
+
+        // Create notification for the assigned user
+        await ctx.db.insert("notifications", {
+          userId: args.assignedUserId,
+          type: "item_assigned",
+          title: "New Item Assigned",
+          message: `Item ${args.itemId} has been assigned to you at stage: ${args.stageName}`,
+          itemId: args.itemId,
+          stageId: args.stageId,
+          senderId: args.enteredBy,
+          isRead: false,
+          priority: "medium",
+          createdAt: now,
+          metadata: {
+            itemId: args.itemId,
+            stageName: args.stageName,
+            locationId: args.locationId,
+          },
+        });
+      }
+    }
+
+    // Log the stage entry in item history
+    await ctx.db.insert("itemHistory", {
+      itemId: item._id,
+      stageId: args.stageId,
+      stageName: args.stageName,
+      action: "stage_entered",
+      timestamp: now,
+      userId: args.enteredBy,
+      notes: `Entered stage: ${args.stageName}`,
+      metadata: {
+        locationId: args.locationId,
+        assignedUserId: args.assignedUserId,
+      },
+    });
+
+    // Log this activity
+    await ctx.db.insert("activityLog", {
+      userId: args.enteredBy,
+      action: "item_stage_entered",
+      entityType: "item",
+      entityId: item._id,
+      description: `Item ${args.itemId} entered stage: ${args.stageName}`,
+      metadata: {
+        itemId: args.itemId,
+        stageId: args.stageId,
+        stageName: args.stageName,
+        locationId: args.locationId,
+        assignedUserId: args.assignedUserId,
+      },
+      timestamp: now,
+    });
+
+    return {
+      success: true,
+      message: `Item ${args.itemId} entered stage: ${args.stageName}`,
+    };
+  },
+});
 
 // Cleanup old test data with hardcoded IDs
 export const cleanupTestData = mutation({

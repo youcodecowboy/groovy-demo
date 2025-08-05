@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { StageBadge } from "@/components/ui/stage-badge"
 import { ItemTimer } from "./item-timer"
 import type { Item, Workflow } from "@/types/schema"
-import { ArrowRight, Play, Clock, AlertTriangle, CheckCircle, MessageSquare } from "lucide-react"
+import { ArrowRight, Play, Clock, AlertTriangle, CheckCircle } from "lucide-react"
 
 interface ActiveStageComponentProps {
   item: Item
@@ -106,15 +106,6 @@ export function ActiveStageComponent({ item, workflow, onAdvanceItem, onMessageA
                     ? `Complete Actions & Advance (${requiredActions.length})`
                     : "Advance to Next Stage"}
                 </Button>
-                {onMessageAboutItem && (
-                  <Button 
-                    variant="outline" 
-                    onClick={() => onMessageAboutItem(item.id)}
-                    className="flex-shrink-0"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                  </Button>
-                )}
               </div>
             </div>
           </div>

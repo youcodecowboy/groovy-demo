@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { StageBadge } from "@/components/ui/stage-badge"
 import type { Item, Workflow } from "@/types/schema"
-import { Search, Filter, Play, Package, Clock, CheckCircle, Pause, Eye } from "lucide-react"
+import { Search, Filter, Package, Clock, CheckCircle, Pause, Eye } from "lucide-react"
 
 interface ItemsTableProps {
   items: Item[]
@@ -248,19 +248,7 @@ export function ItemsTable({ items, workflows, onActivateItem, onRefresh }: Item
                           <Eye className="w-4 h-4 mr-1" />
                           View Details
                         </Button>
-                        {item.status === "inactive" && (
-                          <Button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onActivateItem(item.id)
-                            }}
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            <Play className="w-4 h-4 mr-1" />
-                            Activate
-                          </Button>
-                        )}
+                        {/* Removed activation requirement - items are active by default */}
                       </div>
                     </div>
                   </div>

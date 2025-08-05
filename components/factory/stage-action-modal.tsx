@@ -188,6 +188,32 @@ export function StageActionModal({ item, workflow, isOpen, onClose, onComplete, 
           </Button>
         )
 
+      case "photo":
+        return (
+          <div className="space-y-2">
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+              <Camera className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+              <p className="text-sm text-gray-600">
+                {state?.completed ? "Photo captured ✓" : "Click to capture photo"}
+              </p>
+            </div>
+            <Button
+              variant={state?.completed ? "default" : "outline"}
+              onClick={() =>
+                updateActionState(action.id, !state?.completed, {
+                  photoCount: action.config?.photoCount || 1,
+                  photoQuality: action.config?.photoQuality || "medium",
+                  capturedAt: new Date().toISOString(),
+                })
+              }
+              className="w-full"
+            >
+              <Camera className="w-4 h-4 mr-2" />
+              {state?.completed ? "Photo Captured ✓" : "Capture Photo"}
+            </Button>
+          </div>
+        )
+
       default:
         return (
           <Input
@@ -209,12 +235,18 @@ export function StageActionModal({ item, workflow, isOpen, onClose, onComplete, 
     try {
       const completedActions = Object.entries(actionStates)
         .filter(([_, state]) => state.completed)
-        .map(([actionId, state]) => ({
-          actionId,
-          data: state.data,
-          completedAt: new Date().toISOString(),
-          completedBy: "current-user",
-        }))
+        .map(([actionId, state]) => {
+          // Find the action definition to get the type and label
+          const action = [...requiredActions, ...optionalActions].find(a => a.id === actionId)
+          return {
+            actionId,
+            type: action?.type || "unknown",
+            label: action?.label || "Unknown Action",
+            data: state.data,
+            completedAt: new Date().toISOString(),
+            completedBy: "current-user",
+          }
+        })
 
       await onComplete(completedActions)
     } catch (error) {

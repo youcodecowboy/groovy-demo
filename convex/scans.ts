@@ -85,9 +85,12 @@ export const getRecentScans = query({
 export const getItemScans = query({
   args: { itemId: v.string() },
   handler: async (ctx, args) => {
+    // URL decode the itemId to handle spaces and special characters
+    const decodedItemId = decodeURIComponent(args.itemId);
+    
     return await ctx.db
       .query("scans")
-      .filter((q) => q.eq(q.field("itemId"), args.itemId))
+      .filter((q) => q.eq(q.field("itemId"), decodedItemId))
       .order("desc")
       .collect();
   },

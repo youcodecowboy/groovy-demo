@@ -16,8 +16,8 @@ import {
     MapPin,
     Package, Factory,
     Printer, Copy, Plus, Grid3X3,
-    Layers, Shelf,
-    Rack
+    Layers, Package2,
+    PackageCheck
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
@@ -92,8 +92,8 @@ const FACTORY_LAYOUT: FactoryFloor[] = [
 
 const LOCATION_TYPES = [
   { value: "bin", label: "Bin", icon: Package, color: "bg-blue-500" },
-  { value: "shelf", label: "Shelf", icon: Shelf, color: "bg-green-500" },
-  { value: "rack", label: "Rack", icon: Rack, color: "bg-purple-500" },
+  { value: "shelf", label: "Shelf", icon: Package2, color: "bg-green-500" },
+  { value: "rack", label: "Rack", icon: PackageCheck, color: "bg-purple-500" },
   { value: "area", label: "Area", icon: Grid3X3, color: "bg-orange-500" },
   { value: "zone", label: "Zone", icon: Layers, color: "bg-red-500" }
 ]

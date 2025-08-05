@@ -34,7 +34,7 @@ export default function TestMessagingPage() {
             Admin View
           </Button>
           <Button
-            variant={activeView === "floor" ? "default" : "outline" : "outline"}
+            variant={activeView === "floor" ? "default" : "outline"}
             onClick={() => setActiveView("floor")}
             className="flex items-center gap-2"
           >

@@ -6,7 +6,7 @@ import { api } from "../../convex/_generated/api";
 import { Button } from "./button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./card";
 import { Badge } from "./badge";
-import { QrScanner } from "./qr-scanner";
+import { QRScanner } from "./qr-scanner";
 import { Package, MapPin, ArrowRight, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -184,8 +184,8 @@ export function LocationScanner({ onScanComplete, className }: LocationScannerPr
               </Button>
             ) : (
               <div className="space-y-4">
-                <QrScanner
-                  onResult={handleQrCodeScanned}
+                <QRScanner
+                  onScan={handleQrCodeScanned}
                   className="w-full h-64 rounded-lg overflow-hidden"
                 />
                 <div className="flex gap-2">

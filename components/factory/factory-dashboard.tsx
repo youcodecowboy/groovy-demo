@@ -23,6 +23,7 @@ export function FactoryDashboard({ items, workflows, onItemClick, onAdvanceItem 
   const [selectedBrand, setSelectedBrand] = useState<string>("all")
   const [selectedWorkflow, setSelectedWorkflow] = useState<string>("all")
   const [actionModalItem, setActionModalItem] = useState<Item | null>(null)
+  const [stagePage, setStagePage] = useState(0)
 
   // Only show active items on factory floor
   const activeItems = items.filter((item) => item.status === "active")
@@ -206,28 +207,79 @@ export function FactoryDashboard({ items, workflows, onItemClick, onAdvanceItem 
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {workflows.map((workflow) =>
+            {/* Get all stages with items */}
+            {(() => {
+              const allStages = workflows.flatMap(workflow =>
                 workflow.stages
                   .sort((a, b) => a.order - b.order)
-                  .map((stage) => {
-                    const count = itemsByStage[stage.id] || 0
-                    if (count === 0) return null
+                  .map(stage => ({
+                    ...stage,
+                    workflowName: workflow.name,
+                    count: itemsByStage[stage.id] || 0
+                  }))
+                  .filter(stage => stage.count > 0)
+              )
 
-                    return (
+              const itemsPerPage = 6
+              const totalPages = Math.ceil(allStages.length / itemsPerPage)
+              const startIndex = stagePage * itemsPerPage
+              const endIndex = startIndex + itemsPerPage
+              const currentStages = allStages.slice(startIndex, endIndex)
+
+              return (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                    {currentStages.map((stage) => (
                       <Card key={stage.id} className="border-0 shadow-sm">
                         <CardContent className="p-4 text-center">
                           <div className="mb-2">
                             <StageBadge stage={stage} className="text-xs" />
                           </div>
-                          <div className="text-2xl font-bold text-gray-900">{count}</div>
+                          <div className="text-2xl font-bold text-gray-900">{stage.count}</div>
                           <div className="text-xs text-gray-600">items</div>
+                          <div className="text-xs text-gray-500 mt-1">{stage.workflowName}</div>
                         </CardContent>
                       </Card>
-                    )
-                  }),
-              )}
-            </div>
+                    ))}
+                  </div>
+                  
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 mt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setStagePage(Math.max(0, stagePage - 1))}
+                        disabled={stagePage === 0}
+                      >
+                        Previous
+                      </Button>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: totalPages }, (_, i) => (
+                          <Button
+                            key={i}
+                            variant={stagePage === i ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setStagePage(i)}
+                            className="w-8 h-8 p-0"
+                          >
+                            {i + 1}
+                          </Button>
+                        ))}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setStagePage(Math.min(totalPages - 1, stagePage + 1))}
+                        disabled={stagePage === totalPages - 1}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
           </CardContent>
         </Card>
       )}

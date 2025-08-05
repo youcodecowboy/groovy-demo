@@ -34,6 +34,14 @@ export default function TeamsPage() {
   const teams = []
   const users = useQuery(api.users.getAll)
   // Note: getUserStats function was removed, using getAll instead
+  
+  // Calculate user stats from available data
+  const userStats = {
+    totalTeams: teams.length,
+    activeTeams: teams.filter(team => team?.isActive).length,
+    totalUsers: users?.length || 0,
+    managers: users?.filter(user => user.role === "admin").length || 0
+  }
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleString("en-US", {

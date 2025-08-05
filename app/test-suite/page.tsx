@@ -838,7 +838,7 @@ export default function TestSuitePage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <Button asChild className="w-full h-12 text-base bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800">
                 <Link href="/admin">Admin Dashboard</Link>
               </Button>
@@ -848,6 +848,48 @@ export default function TestSuitePage() {
               <Button asChild variant="outline" className="w-full h-12 text-base">
                 <Link href="/">Home</Link>
               </Button>
+            </div>
+            
+            <div className="mt-4 pt-4 border-t">
+              <h4 className="font-medium text-gray-900 mb-3">Test Pages</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <Button asChild variant="outline" size="sm" className="w-full">
+                  <Link href="/test-reset-data">
+                    <Database className="w-4 h-4 mr-2" />
+                    Reset All Data
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="sm" className="w-full">
+                  <Link href="/test-approval-system">
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Approval System Test
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="sm" className="w-full">
+                  <Link href="/test-backend">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Backend Test
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="sm" className="w-full">
+                  <Link href="/test-item-creation">
+                    <Package className="w-4 h-4 mr-2" />
+                    Item Creation Test
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="sm" className="w-full">
+                  <Link href="/test-qr-scanning">
+                    <QrCode className="w-4 h-4 mr-2" />
+                    QR Scanning Test
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="sm" className="w-full">
+                  <Link href="/test-users">
+                    <Activity className="w-4 h-4 mr-2" />
+                    Users Test
+                  </Link>
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

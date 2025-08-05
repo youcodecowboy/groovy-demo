@@ -7,6 +7,7 @@ import { useWorkflows, useItems, useItemMutations } from "@/hooks/use-convex"
 import { FactoryHeader } from "@/components/factory/factory-header"
 import { FactoryFooter } from "@/components/factory/factory-footer"
 import { FactoryDashboard } from "@/components/factory/factory-dashboard"
+import { FactoryItemsList } from "@/components/factory/factory-items-list"
 import { MoveItemDialog } from "@/components/factory/move-item-dialog"
 import { MessagesPanel } from "@/components/factory/messages-panel"
 
@@ -133,8 +134,15 @@ export default function FactoryFloorPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <FactoryHeader />
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-6 space-y-6">
         <FactoryDashboard
+          items={convertedItems}
+          workflows={convertedWorkflows}
+          onItemClick={handleItemClick}
+          onAdvanceItem={handleAdvanceItem}
+        />
+        
+        <FactoryItemsList
           items={convertedItems}
           workflows={convertedWorkflows}
           onItemClick={handleItemClick}
