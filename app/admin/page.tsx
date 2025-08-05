@@ -25,7 +25,7 @@ export default function AdminPage() {
       await seedDemoData()
       toast({
         title: "Success",
-        description: "Demo data reset successfully with admin and floor users",
+        description: "Demo data reset successfully with admin, floor users, brands, and factories",
       })
     } catch (error) {
       toast({

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { Settings, Smartphone, Package, ArrowRight, Zap, BarChart3 } from "lucide-react"
+import { Settings, Smartphone, Package, ArrowRight, Zap, BarChart3, Building2 } from "lucide-react"
 import { AppHeader } from "@/components/layout/app-header"
 
 export default function HomePage() {
@@ -24,7 +24,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
             <Card className="group hover:shadow-2xl transition-all duration-500 border-0 shadow-lg hover:-translate-y-1">
               <CardHeader className="pb-6">
                 <div className="flex items-center justify-between mb-6">
@@ -94,6 +94,29 @@ export default function HomePage() {
                   className="w-full h-12 text-base border-2 border-purple-200 hover:bg-purple-50 hover:border-purple-300 bg-transparent"
                 >
                   <Link href="/admin">View Items</Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="group hover:shadow-2xl transition-all duration-500 border-0 shadow-lg hover:-translate-y-1">
+              <CardHeader className="pb-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-black to-gray-800 text-white shadow-lg group-hover:shadow-black/25 transition-all duration-300">
+                    <Building2 className="w-7 h-7" />
+                  </div>
+                  <ArrowRight className="w-6 h-6 text-gray-400 group-hover:text-black group-hover:translate-x-2 transition-all duration-300" />
+                </div>
+                <CardTitle className="text-2xl mb-3">Brand Interface</CardTitle>
+                <CardDescription className="text-gray-600 text-base leading-relaxed">
+                  Monitor your production orders, communicate with factories, and track real-time progress through our premium brand dashboard.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  asChild
+                  className="w-full h-12 text-base bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black shadow-lg"
+                >
+                  <Link href="/brand/dashboard">Access Brand Portal</Link>
                 </Button>
               </CardContent>
             </Card>

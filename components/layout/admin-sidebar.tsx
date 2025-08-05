@@ -35,7 +35,8 @@ import {
     Bell,
     Flag,
     AlertTriangle,
-    MapPin
+    MapPin,
+    FileText
 } from "lucide-react"
 
 const navigation = [
@@ -61,6 +62,7 @@ const navigation = [
       { name: "Users", href: "/admin/users", icon: Users },
       { name: "Teams", href: "/admin/teams", icon: UserPlus },
       { name: "Tasks", href: "/admin/tasks", icon: CheckCircle },
+      { name: "Purchase Orders", href: "/admin/purchase-orders", icon: FileText },
       { name: "Locations", href: "/admin/locations", icon: MapPin },
       { name: "Location History", href: "/admin/location-history", icon: MapPin },
       { name: "Defective Items", href: "/admin/defective-items", icon: AlertTriangle },

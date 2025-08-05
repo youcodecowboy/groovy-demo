@@ -1726,4 +1726,28 @@ export const testEndToEndWorkflow = mutation({
       workflowId: workflowId.toString()
     };
   },
+});
+
+// Get items by purchase order
+export const listItemsByPO = query({
+  args: { purchaseOrderId: v.id("purchaseOrders") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("items")
+      .withIndex("by_po", (q) => q.eq("purchaseOrderId", args.purchaseOrderId))
+      .order("desc")
+      .collect()
+  },
+});
+
+// Get items by brand
+export const listItemsByBrand = query({
+  args: { brandId: v.id("brands") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("items")
+      .withIndex("by_brand", (q) => q.eq("brandId", args.brandId))
+      .order("desc")
+      .collect()
+  },
 }); 

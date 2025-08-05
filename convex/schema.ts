@@ -47,7 +47,11 @@ export default defineSchema({
     defectNotes: v.optional(v.string()), // Notes about the defect
     flaggedBy: v.optional(v.string()), // User who flagged the item
     flaggedAt: v.optional(v.number()), // When the item was flagged
-  }).index("by_user", ["assignedTo"]).index("by_location", ["currentLocationId"]),
+    // Brand interface additions
+    brandId: v.optional(v.id("brands")), // Link items to brands
+    factoryId: v.optional(v.id("factories")), // Link items to factories
+    purchaseOrderId: v.optional(v.id("purchaseOrders")), // Link items to POs
+  }).index("by_user", ["assignedTo"]).index("by_location", ["currentLocationId"]).index("by_brand", ["brandId"]).index("by_factory", ["factoryId"]).index("by_po", ["purchaseOrderId"]),
 
   // Completed items table - stores items that have finished processing
   completedItems: defineTable({
@@ -119,7 +123,11 @@ export default defineSchema({
     team: v.optional(v.string()), // Team assignment
     avatar: v.optional(v.string()), // Avatar URL
     phone: v.optional(v.string()), // Phone number
-  }).index("by_team", ["team"]).index("by_role", ["role"]).index("by_active", ["isActive"]),
+    // Brand interface additions
+    brandId: v.optional(v.id("brands")), // For brand users
+    factoryId: v.optional(v.id("factories")), // For factory users
+    userType: v.optional(v.union(v.literal("brand"), v.literal("factory"), v.literal("system"))), // User type for brand interface
+  }).index("by_team", ["team"]).index("by_role", ["role"]).index("by_active", ["isActive"]).index("by_brand", ["brandId"]).index("by_factory", ["factoryId"]).index("by_type", ["userType"]),
 
   // Teams table - for team management
   teams: defineTable({
@@ -143,7 +151,12 @@ export default defineSchema({
       v.literal("stage_completed"),
       v.literal("message_received"),
       v.literal("task_assigned"),
-      v.literal("system_alert")
+      v.literal("system_alert"),
+      // Brand interface additions
+      v.literal("po_submitted"),
+      v.literal("po_accepted"),
+      v.literal("po_rejected"),
+      v.literal("po_completed")
     ),
     title: v.string(),
     message: v.string(),
@@ -156,7 +169,11 @@ export default defineSchema({
     createdAt: v.number(),
     readAt: v.optional(v.number()),
     metadata: v.optional(v.any()), // Additional notification data
-  }).index("by_user", ["userId"]).index("by_user_read", ["userId", "isRead"]),
+    // Brand interface additions
+    brandId: v.optional(v.id("brands")), // For brand notifications
+    factoryId: v.optional(v.id("factories")), // For factory notifications
+    orderId: v.optional(v.id("purchaseOrders")), // Related purchase order
+  }).index("by_user", ["userId"]).index("by_user_read", ["userId", "isRead"]).index("by_brand", ["brandId"]).index("by_factory", ["factoryId"]),
 
   // Messages table - for direct messaging between users
   messages: defineTable({
@@ -169,7 +186,11 @@ export default defineSchema({
     readAt: v.optional(v.number()),
     replyToId: v.optional(v.id("messages")), // For reply messages
     metadata: v.optional(v.any()), // Additional message data
-  }).index("by_sender", ["senderId"]).index("by_recipient", ["recipientId"]).index("by_recipient_read", ["recipientId", "isRead"]),
+    // Brand interface additions
+    brandId: v.optional(v.id("brands")), // For brand-factory messages
+    factoryId: v.optional(v.id("factories")), // For brand-factory messages
+    orderId: v.optional(v.id("purchaseOrders")), // Related purchase order
+  }).index("by_sender", ["senderId"]).index("by_recipient", ["recipientId"]).index("by_recipient_read", ["recipientId", "isRead"]).index("by_brand", ["brandId"]).index("by_factory", ["factoryId"]),
 
   // Tasks table - for task assignments
   tasks: defineTable({
@@ -193,14 +214,18 @@ export default defineSchema({
   activityLog: defineTable({
     userId: v.optional(v.string()), // User who performed the action
     action: v.string(), // Action performed
-    entityType: v.union(v.literal("item"), v.literal("workflow"), v.literal("user"), v.literal("task"), v.literal("message"), v.literal("notification"), v.literal("team"), v.literal("location")),
+    entityType: v.union(v.literal("item"), v.literal("workflow"), v.literal("user"), v.literal("task"), v.literal("message"), v.literal("notification"), v.literal("team"), v.literal("location"), v.literal("brand"), v.literal("factory"), v.literal("purchase_order")),
     entityId: v.optional(v.string()), // ID of the affected entity
     description: v.string(),
     metadata: v.optional(v.any()), // Additional activity data
     timestamp: v.number(),
     ipAddress: v.optional(v.string()),
     userAgent: v.optional(v.string()),
-  }).index("by_user", ["userId"]).index("by_entity", ["entityType", "entityId"]).index("by_timestamp", ["timestamp"]),
+    // Brand interface additions
+    brandId: v.optional(v.id("brands")), // For brand activities
+    factoryId: v.optional(v.id("factories")), // For factory activities
+    orderId: v.optional(v.id("purchaseOrders")), // Related purchase order
+  }).index("by_user", ["userId"]).index("by_entity", ["entityType", "entityId"]).index("by_timestamp", ["timestamp"]).index("by_brand", ["brandId"]).index("by_factory", ["factoryId"]),
 
   // Location history table - for tracking item movements between locations
   locationHistory: defineTable({
@@ -238,4 +263,60 @@ export default defineSchema({
     updatedAt: v.number(),
     updatedBy: v.string(),
   }),
+
+  // Brands table - for brand management
+  brands: defineTable({
+    name: v.string(),
+    email: v.string(),
+    contactPerson: v.string(),
+    phone: v.optional(v.string()),
+    address: v.optional(v.string()),
+    logo: v.optional(v.string()), // URL to brand logo
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    metadata: v.optional(v.any()), // Additional brand-specific data
+  }).index("by_active", ["isActive"]),
+
+  // Factories table - for factory management
+  factories: defineTable({
+    name: v.string(),
+    location: v.string(),
+    adminUserId: v.string(), // Primary admin user
+    isActive: v.boolean(),
+    capacity: v.optional(v.number()),
+    specialties: v.optional(v.array(v.string())), // Production capabilities
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_admin", ["adminUserId"]).index("by_active", ["isActive"]),
+
+  // Brand-Factory relationships table
+  brandFactoryRelations: defineTable({
+    brandId: v.id("brands"),
+    factoryId: v.id("factories"),
+    isActive: v.boolean(),
+    partnershipStartDate: v.number(),
+    notes: v.optional(v.string()),
+  }).index("by_brand", ["brandId"]).index("by_factory", ["factoryId"]),
+
+  // Purchase Orders table - for brand orders
+  purchaseOrders: defineTable({
+    brandId: v.id("brands"),
+    factoryId: v.id("factories"),
+    poNumber: v.string(),
+    status: v.union(v.literal("pending"), v.literal("accepted"), v.literal("rejected"), v.literal("completed")),
+    items: v.array(v.object({
+      sku: v.string(),
+      quantity: v.number(),
+      description: v.string(),
+      specifications: v.optional(v.any()),
+    })),
+    totalValue: v.number(),
+    requestedDeliveryDate: v.number(),
+    submittedAt: v.number(),
+    acceptedAt: v.optional(v.number()),
+    acceptedBy: v.optional(v.string()), // User ID
+    notes: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+  }).index("by_brand", ["brandId"]).index("by_factory", ["factoryId"]).index("by_status", ["status"]),
 }); 
