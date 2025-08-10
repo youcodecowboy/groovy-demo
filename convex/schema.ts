@@ -2,8 +2,45 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  // Multi-tenant core
+  organizations: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    ownerUserId: v.string(),
+    createdAt: v.number(),
+    metadata: v.optional(v.any()),
+  }).index("by_slug", ["slug"]).index("by_owner", ["ownerUserId"]),
+
+  memberships: defineTable({
+    orgId: v.id("organizations"),
+    userId: v.string(),
+    role: v.union(v.literal("owner"), v.literal("admin"), v.literal("member"), v.literal("viewer")),
+    createdAt: v.number(),
+  }).index("by_user", ["userId"]).index("by_org", ["orgId"]),
+
+  // Tenant settings and dashboards (MVP: dashboards store JSON layout)
+  organizationSettings: defineTable({
+    orgId: v.id("organizations"),
+    enabledFeatures: v.optional(v.array(v.string())),
+    theme: v.optional(v.any()),
+    defaultDashboardId: v.optional(v.id("dashboards")),
+    updatedAt: v.number(),
+    updatedBy: v.string(),
+  }).index("by_org", ["orgId"]),
+
+  dashboards: defineTable({
+    orgId: v.id("organizations"),
+    name: v.string(),
+    scope: v.union(v.literal("org"), v.literal("role"), v.literal("user")),
+    ownerId: v.optional(v.string()),
+    role: v.optional(v.string()),
+    layoutJson: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_org", ["orgId"]),
   // Workflows table - stores workflow definitions
   workflows: defineTable({
+    orgId: v.optional(v.id("organizations")),
     name: v.string(),
     description: v.optional(v.string()),
     stages: v.array(v.object({
@@ -32,6 +69,7 @@ export default defineSchema({
 
   // Items table - stores individual items being processed
   items: defineTable({
+    orgId: v.optional(v.id("organizations")),
     itemId: v.string(), // Unique identifier for the item
     workflowId: v.id("workflows"),
     currentStageId: v.string(),
@@ -55,6 +93,7 @@ export default defineSchema({
 
   // Completed items table - stores items that have finished processing
   completedItems: defineTable({
+    orgId: v.optional(v.id("organizations")),
     itemId: v.string(), // Unique identifier for the item
     workflowId: v.id("workflows"),
     finalStageId: v.string(), // The last stage the item completed
@@ -71,6 +110,7 @@ export default defineSchema({
 
   // Item history table - tracks all stage transitions
   itemHistory: defineTable({
+    orgId: v.optional(v.id("organizations")),
     itemId: v.id("items"),
     stageId: v.string(),
     stageName: v.string(),
@@ -83,6 +123,7 @@ export default defineSchema({
 
   // Completed item history table - tracks history for completed items
   completedItemHistory: defineTable({
+    orgId: v.optional(v.id("organizations")),
     itemId: v.string(), // Using string since completed items don't have a Convex ID
     stageId: v.string(),
     stageName: v.string(),
@@ -95,6 +136,7 @@ export default defineSchema({
 
   // Scans table - tracks all QR code scans
   scans: defineTable({
+    orgId: v.optional(v.id("organizations")),
     itemId: v.optional(v.string()), // The item that was scanned (if found)
     qrData: v.string(), // The raw QR code data
     scanType: v.union(v.literal("item_lookup"), v.literal("stage_completion"), v.literal("error")),
@@ -131,6 +173,7 @@ export default defineSchema({
 
   // Teams table - for team management
   teams: defineTable({
+    orgId: v.optional(v.id("organizations")),
     name: v.string(),
     description: v.optional(v.string()),
     managerId: v.optional(v.string()), // User ID of team manager
@@ -142,6 +185,7 @@ export default defineSchema({
 
   // Notifications table - for system notifications
   notifications: defineTable({
+    orgId: v.optional(v.id("organizations")),
     userId: v.string(), // User who should receive the notification
     type: v.union(
       v.literal("item_assigned"),
@@ -177,6 +221,7 @@ export default defineSchema({
 
   // Messages table - for direct messaging between users
   messages: defineTable({
+    orgId: v.optional(v.id("organizations")),
     senderId: v.string(), // User who sent the message
     recipientId: v.string(), // User who should receive the message
     content: v.string(),
@@ -194,6 +239,7 @@ export default defineSchema({
 
   // Tasks table - for task assignments
   tasks: defineTable({
+    orgId: v.optional(v.id("organizations")),
     title: v.string(),
     description: v.string(),
     assignedTo: v.string(), // User ID
@@ -212,6 +258,7 @@ export default defineSchema({
 
   // Activity log table - for tracking all system activities
   activityLog: defineTable({
+    orgId: v.optional(v.id("organizations")),
     userId: v.optional(v.string()), // User who performed the action
     action: v.string(), // Action performed
     entityType: v.union(v.literal("item"), v.literal("workflow"), v.literal("user"), v.literal("task"), v.literal("message"), v.literal("notification"), v.literal("team"), v.literal("location"), v.literal("brand"), v.literal("factory"), v.literal("purchase_order")),
@@ -229,6 +276,7 @@ export default defineSchema({
 
   // Location history table - for tracking item movements between locations
   locationHistory: defineTable({
+    orgId: v.optional(v.id("organizations")),
     itemId: v.string(), // Item that was moved
     fromLocationId: v.optional(v.id("locations")), // Previous location
     toLocationId: v.id("locations"), // New location
@@ -241,6 +289,7 @@ export default defineSchema({
 
   // Locations table - for inventory location management
   locations: defineTable({
+    orgId: v.optional(v.id("organizations")),
     name: v.string(),
     description: v.optional(v.string()),
     type: v.union(v.literal("bin"), v.literal("shelf"), v.literal("rack"), v.literal("area"), v.literal("zone")),
@@ -258,6 +307,7 @@ export default defineSchema({
 
   // System settings table
   settings: defineTable({
+    orgId: v.optional(v.id("organizations")),
     key: v.string(),
     value: v.any(),
     updatedAt: v.number(),
@@ -266,6 +316,7 @@ export default defineSchema({
 
   // Brands table - for brand management
   brands: defineTable({
+    orgId: v.optional(v.id("organizations")),
     name: v.string(),
     email: v.string(),
     contactPerson: v.string(),
@@ -280,6 +331,7 @@ export default defineSchema({
 
   // Factories table - for factory management
   factories: defineTable({
+    orgId: v.optional(v.id("organizations")),
     name: v.string(),
     location: v.string(),
     adminUserId: v.string(), // Primary admin user
@@ -292,6 +344,7 @@ export default defineSchema({
 
   // Brand-Factory relationships table
   brandFactoryRelations: defineTable({
+    orgId: v.optional(v.id("organizations")),
     brandId: v.id("brands"),
     factoryId: v.id("factories"),
     isActive: v.boolean(),
@@ -301,6 +354,7 @@ export default defineSchema({
 
   // Purchase Orders table - for brand orders
   purchaseOrders: defineTable({
+    orgId: v.optional(v.id("organizations")),
     brandId: v.id("brands"),
     factoryId: v.id("factories"),
     poNumber: v.string(),

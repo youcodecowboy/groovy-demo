@@ -1,20 +1,24 @@
 "use client"
 
 import { useWorkflows, useItems } from "@/hooks/use-convex"
-import { useQuery } from "convex/react"
+import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
+import { useState } from "react"
 
 export default function DebugPage() {
   const { workflows, isLoading: workflowsLoading } = useWorkflows()
   const { allItems, isLoading: itemsLoading } = useItems()
   const router = useRouter()
+  const org = useQuery(api.tenancy.getOrganization, {})
+  const updateOrgName = useMutation(api.tenancy.updateOrganizationName)
   
   // Direct queries to test
   const directWorkflows = useQuery(api.workflows.getAll)
   const directItems = useQuery(api.items.getAll)
+  const [newName, setNewName] = useState("")
 
   const handleTestNavigation = (itemId: string) => {
     router.push(`/floor/items/${itemId}`)
@@ -26,6 +30,39 @@ export default function DebugPage() {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Debug Page</h1>
         <p className="text-gray-600">Check Convex connection and data</p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Organization (per-tenant)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <div><strong>Name:</strong> {org?.name ?? "—"}</div>
+            <div><strong>Slug:</strong> {org?.slug ?? "—"}</div>
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <label className="block text-xs text-gray-600 mb-1">Rename</label>
+                <input
+                  className="w-full rounded-md border px-3 py-2"
+                  placeholder="e.g., Acme"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                />
+              </div>
+              <Button
+                onClick={async () => {
+                  const value = newName.trim()
+                  if (!value) return
+                  await updateOrgName({ name: value })
+                  setNewName("")
+                }}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

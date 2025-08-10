@@ -38,6 +38,7 @@ import {
     MapPin,
     FileText
 } from "lucide-react"
+import { SignedIn, UserButton } from "@clerk/nextjs"
 
 const navigation = [
   {
@@ -127,6 +128,14 @@ export function AdminSidebar({ children }: AdminSidebarProps) {
               </SidebarGroupContent>
             </SidebarGroup>
           ))}
+          <div className="mt-8 pt-6 border-t">
+            <SignedIn>
+              <div className="flex items-center justify-between px-2">
+                <span className="text-xs text-gray-500">Account</span>
+                <UserButton appearance={{ elements: { userButtonAvatarBox: "h-8 w-8" } }} />
+              </div>
+            </SignedIn>
+          </div>
         </SidebarContent>
       </Sidebar>
       <SidebarInset className="flex-1">

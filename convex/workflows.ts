@@ -1,11 +1,17 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { resolveOrgId } from "./util";
 
 // Get all workflows
 export const getAll = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query("workflows").order("desc").collect();
+    const orgId = await resolveOrgId(ctx)
+    return await ctx.db
+      .query("workflows")
+      .filter((q) => q.eq(q.field("orgId"), orgId))
+      .order("desc")
+      .collect();
   },
 });
 
@@ -13,9 +19,13 @@ export const getAll = query({
 export const getActive = query({
   args: {},
   handler: async (ctx) => {
+    const orgId = await resolveOrgId(ctx)
     return await ctx.db
       .query("workflows")
-      .filter((q) => q.eq(q.field("isActive"), true))
+      .filter((q) => q.and(
+        q.eq(q.field("orgId"), orgId),
+        q.eq(q.field("isActive"), true)
+      ))
       .order("desc")
       .collect();
   },
@@ -55,7 +65,9 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
+    const orgId = await resolveOrgId(ctx)
     return await ctx.db.insert("workflows", {
+      orgId,
       name: args.name,
       description: args.description,
       stages: args.stages,

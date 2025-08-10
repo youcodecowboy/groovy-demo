@@ -1,17 +1,20 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { resolveOrgId } from "./util";
 
 // Send a message
 export const send = mutation({
   args: {
-    senderId: v.string(),
+    senderId: v.string(), // Prefer Clerk email for now; can migrate to userId later
     recipientId: v.string(),
     content: v.string(),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
+    const orgId = await resolveOrgId(ctx);
     
     const messageId = await ctx.db.insert("messages", {
+      orgId,
       senderId: args.senderId,
       recipientId: args.recipientId,
       content: args.content,
@@ -31,8 +34,10 @@ export const getConversation = query({
     otherUserId: v.string(),
   },
   handler: async (ctx, args) => {
+    const orgId = await resolveOrgId(ctx);
     const messages = await ctx.db
       .query("messages")
+      .filter((q) => q.eq(q.field("orgId"), orgId))
       .filter((q) => 
         q.or(
           q.and(
@@ -58,8 +63,10 @@ export const getUnreadCount = query({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const orgId = await resolveOrgId(ctx);
     const unreadMessages = await ctx.db
       .query("messages")
+      .filter((q) => q.eq(q.field("orgId"), orgId))
       .filter((q) => 
         q.and(
           q.eq(q.field("recipientId"), args.userId),
@@ -80,9 +87,11 @@ export const getRecentUnreadMessages = query({
   },
   handler: async (ctx, args) => {
     const limit = args.limit || 10;
+    const orgId = await resolveOrgId(ctx);
     
     const unreadMessages = await ctx.db
       .query("messages")
+      .filter((q) => q.eq(q.field("orgId"), orgId))
       .filter((q) => 
         q.and(
           q.eq(q.field("recipientId"), args.userId),
@@ -102,10 +111,12 @@ export const markAsRead = mutation({
     messageIds: v.array(v.id("messages")),
   },
   handler: async (ctx, args) => {
+    const orgId = await resolveOrgId(ctx);
     for (const messageId of args.messageIds) {
-      await ctx.db.patch(messageId, {
-        isRead: true,
-      });
+      const msg = await ctx.db.get(messageId);
+      if (!msg) continue;
+      if (msg.orgId && (await resolveOrgId(ctx)) !== msg.orgId) continue;
+      await ctx.db.patch(messageId, { isRead: true });
     }
   },
 });
@@ -116,9 +127,11 @@ export const getConversations = query({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const orgId = await resolveOrgId(ctx);
     // Get all messages where user is sender or recipient
     const allMessages = await ctx.db
       .query("messages")
+      .filter((q) => q.eq(q.field("orgId"), orgId))
       .filter((q) => 
         q.or(
           q.eq(q.field("senderId"), args.userId),
@@ -163,9 +176,11 @@ export const getRecentMessages = query({
   },
   handler: async (ctx, args) => {
     const limit = args.limit || 50;
+    const orgId = await resolveOrgId(ctx);
     
     return await ctx.db
       .query("messages")
+      .filter((q) => q.eq(q.field("orgId"), orgId))
       .filter((q) => 
         q.or(
           q.eq(q.field("senderId"), args.userId),
