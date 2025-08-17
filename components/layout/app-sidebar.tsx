@@ -18,7 +18,7 @@ import {
     SidebarInset,
     SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { Home, Workflow, MessageSquare, Settings, Package, FileText, Users, Users2 } from "lucide-react"
+import { Home, Workflow, MessageSquare, Settings, Package, FileText, Users, Users2, Zap, Cog } from "lucide-react"
 import { SignedIn, UserButton } from "@/components/ui/mock-auth-components"
 
 const navigation = [
@@ -33,6 +33,13 @@ const navigation = [
       { name: "Orders", href: "/app/orders", icon: FileText },
       { name: "Messages", href: "/app/messages", icon: MessageSquare },
       { name: "Settings", href: "/app/settings", icon: Settings },
+    ],
+  },
+  {
+    title: "Disco",
+    items: [
+      { name: "Floor App", href: "/disco", icon: Zap },
+      { name: "Configuration", href: "/disco/config", icon: Cog },
     ],
   },
 ]
