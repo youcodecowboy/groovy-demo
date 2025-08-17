@@ -16,10 +16,6 @@ export default function DiscoFloorPage() {
   const router = useRouter()
   const [selectedTeam, setSelectedTeam] = useState<string>("production")
   const [isScannerOpen, setIsScannerOpen] = useState(false)
-  
-  // For demo purposes, using a default factory ID
-  // In production, this would come from user context or URL params
-  const factoryId = "demo-factory-1" as any
 
   // Mutations
   const advanceItem = useMutation(api.items.advanceItemWithValidation)
@@ -149,12 +145,11 @@ export default function DiscoFloorPage() {
         {/* Content */}
         <div className="container mx-auto px-4 py-6 space-y-8">
           {/* Metrics Cards */}
-          <DiscoMetrics teamId={selectedTeam} factoryId={factoryId} />
+          <DiscoMetrics teamId={selectedTeam} />
           
           {/* Item Queue */}
           <DiscoQueue 
             teamId={selectedTeam}
-            factoryId={factoryId}
             onItemAction={handleItemAction}
           />
         </div>

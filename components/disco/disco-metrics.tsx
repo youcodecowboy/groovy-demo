@@ -15,19 +15,16 @@ export function DiscoMetrics({ teamId, factoryId }: DiscoMetricsProps) {
   // Get real metrics from Convex
   const todayMetrics = useQuery(api.items.getTeamMetrics, { 
     teamId, 
-    factoryId: factoryId as any,
     timeRange: "today" 
   })
   
   const weekMetrics = useQuery(api.items.getTeamMetrics, { 
     teamId, 
-    factoryId: factoryId as any,
     timeRange: "week" 
   })
   
   const monthMetrics = useQuery(api.items.getTeamMetrics, { 
     teamId, 
-    factoryId: factoryId as any,
     timeRange: "month" 
   })
 

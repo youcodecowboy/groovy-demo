@@ -33,8 +33,7 @@ export function DiscoQueue({ teamId, factoryId, onItemAction }: DiscoQueueProps)
 
   // Get real items from Convex
   const items = useQuery(api.items.getItemsByTeam, { 
-    teamId, 
-    factoryId: factoryId as any 
+    teamId
   })
 
   // Mutations
