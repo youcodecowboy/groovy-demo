@@ -4,7 +4,18 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { CheckCircle, AlertCircle, Clock, Flag } from "lucide-react"
+import { 
+  CheckCircle, 
+  AlertCircle, 
+  Clock, 
+  Flag, 
+  ChevronDown, 
+  ChevronRight,
+  MapPin,
+  User,
+  Package,
+  Calendar
+} from "lucide-react"
 
 interface DiscoQueueProps {
   teamId: string
@@ -16,43 +27,85 @@ const mockItems = [
   {
     id: "ITEM-001",
     sku: "TSH-001",
+    order: "PO-2024-001",
+    customer: "Fashion Forward Inc",
+    location: "Station A-3",
     stage: "Cutting",
     priority: "high",
     dueTime: "14:30",
     status: "in-progress",
+    timeAtStage: "2h 15m",
+    onTrack: true,
     qrCode: "ITEM-001",
+    startedAt: "2024-12-17T10:15:00Z",
+    estimatedDuration: "4h",
+    assignedTo: "John Smith",
   },
   {
     id: "ITEM-002", 
     sku: "TSH-002",
+    order: "PO-2024-002",
+    customer: "Urban Style Co",
+    location: "Station B-1",
     stage: "Sewing",
     priority: "medium",
     dueTime: "15:45",
     status: "ready",
+    timeAtStage: "0h 30m",
+    onTrack: true,
     qrCode: "ITEM-002",
+    startedAt: "2024-12-17T13:15:00Z",
+    estimatedDuration: "2h",
+    assignedTo: "Maria Garcia",
   },
   {
     id: "ITEM-003",
     sku: "TSH-003", 
+    order: "PO-2024-003",
+    customer: "Premium Brands Ltd",
+    location: "Station C-2",
     stage: "Quality Control",
     priority: "low",
     dueTime: "16:00",
     status: "ready",
+    timeAtStage: "1h 45m",
+    onTrack: false,
     qrCode: "ITEM-003",
+    startedAt: "2024-12-17T12:15:00Z",
+    estimatedDuration: "1h",
+    assignedTo: "Sarah Johnson",
   },
   {
     id: "ITEM-004",
     sku: "TSH-004",
+    order: "PO-2024-004",
+    customer: "Global Fashion Group",
+    location: "Station D-1",
     stage: "Packaging", 
     priority: "high",
     dueTime: "13:15",
     status: "in-progress",
+    timeAtStage: "3h 20m",
+    onTrack: false,
     qrCode: "ITEM-004",
+    startedAt: "2024-12-17T09:55:00Z",
+    estimatedDuration: "1.5h",
+    assignedTo: "Mike Chen",
   },
 ]
 
 export function DiscoQueue({ teamId, onItemAction }: DiscoQueueProps) {
-  const [selectedItem, setSelectedItem] = useState<string | null>(null)
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
+
+  const toggleExpanded = (itemId: string) => {
+    const newExpanded = new Set(expandedItems)
+    if (newExpanded.has(itemId)) {
+      newExpanded.delete(itemId)
+    } else {
+      newExpanded.add(itemId)
+    }
+    setExpandedItems(newExpanded)
+  }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -72,12 +125,22 @@ export function DiscoQueue({ teamId, onItemAction }: DiscoQueueProps) {
     }
   }
 
+  const getTrackStatusColor = (onTrack: boolean) => {
+    return onTrack 
+      ? "bg-green-100 text-green-800 border-green-200" 
+      : "bg-red-100 text-red-800 border-red-200"
+  }
+
   const handleQuickAction = (action: string, itemId: string) => {
     onItemAction(action, itemId)
     if (action === "mark-done") {
       // Remove item from queue with animation
       setTimeout(() => {
-        setSelectedItem(null)
+        setExpandedItems(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(itemId)
+          return newSet
+        })
       }, 500)
     }
   }
@@ -92,53 +155,114 @@ export function DiscoQueue({ teamId, onItemAction }: DiscoQueueProps) {
         </Badge>
       </div>
 
-      {/* Items Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Items List */}
+      <div className="space-y-3">
         {mockItems.map((item) => (
           <Card 
             key={item.id}
-            className={`
-              transition-all duration-200 hover:shadow-md cursor-pointer
-              ${selectedItem === item.id ? 'ring-2 ring-blue-500' : ''}
-            `}
-            onClick={() => setSelectedItem(selectedItem === item.id ? null : item.id)}
+            className="transition-all duration-200 hover:shadow-md"
           >
-            <CardHeader className="pb-3">
+            {/* Main Row */}
+            <CardHeader className="pb-3 cursor-pointer" onClick={() => toggleExpanded(item.id)}>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm text-gray-600">#{item.sku}</span>
+                <div className="flex items-center gap-4">
+                  {/* Expand/Collapse Icon */}
+                  {expandedItems.has(item.id) ? (
+                    <ChevronDown className="w-5 h-5 text-gray-500" />
+                  ) : (
+                    <ChevronRight className="w-5 h-5 text-gray-500" />
+                  )}
+                  
+                  {/* Item Info */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col">
+                      <span className="font-mono text-sm text-gray-600">#{item.sku}</span>
+                      <span className="text-xs text-gray-500">{item.order}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">{item.stage}</span>
+                      <span className="text-xs text-gray-500">{item.location}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status and Actions */}
+                <div className="flex items-center gap-3">
                   <Badge 
                     variant="outline" 
                     className={getPriorityColor(item.priority)}
                   >
                     {item.priority}
                   </Badge>
+                  <Badge 
+                    variant="outline" 
+                    className={getStatusColor(item.status)}
+                  >
+                    {item.status}
+                  </Badge>
+                  <Badge 
+                    variant="outline" 
+                    className={getTrackStatusColor(item.onTrack)}
+                  >
+                    {item.onTrack ? "On Track" : "Late"}
+                  </Badge>
+                  <span className="text-sm text-gray-600">{item.dueTime}</span>
                 </div>
-                <Badge 
-                  variant="outline" 
-                  className={getStatusColor(item.status)}
-                >
-                  {item.status}
-                </Badge>
               </div>
             </CardHeader>
             
-            <CardContent className="space-y-3">
-              {/* Stage */}
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-gray-500" />
-                <span className="text-sm font-medium">{item.stage}</span>
-              </div>
-              
-              {/* Due Time */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Due:</span>
-                <span className="font-mono text-sm font-medium">{item.dueTime}</span>
-              </div>
+            {/* Expanded Details */}
+            {expandedItems.has(item.id) && (
+              <CardContent className="pt-0 border-t">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-4">
+                  {/* Customer & Order Info */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm font-medium">Customer</span>
+                    </div>
+                    <p className="text-sm text-gray-600">{item.customer}</p>
+                    
+                    <div className="flex items-center gap-2">
+                      <Package className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm font-medium">Order</span>
+                    </div>
+                    <p className="text-sm text-gray-600">{item.order}</p>
+                  </div>
 
-              {/* Quick Actions */}
-              {selectedItem === item.id && (
-                <div className="flex gap-2 pt-2 border-t">
+                  {/* Location & Assignment */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm font-medium">Location</span>
+                    </div>
+                    <p className="text-sm text-gray-600">{item.location}</p>
+                    
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm font-medium">Assigned To</span>
+                    </div>
+                    <p className="text-sm text-gray-600">{item.assignedTo}</p>
+                  </div>
+
+                  {/* Time & Progress */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm font-medium">Time at Stage</span>
+                    </div>
+                    <p className="text-sm text-gray-600">{item.timeAtStage}</p>
+                    
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm font-medium">Est. Duration</span>
+                    </div>
+                    <p className="text-sm text-gray-600">{item.estimatedDuration}</p>
+                  </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="flex gap-2 pt-3 border-t">
                   <Button
                     size="sm"
                     onClick={(e) => {
@@ -148,7 +272,7 @@ export function DiscoQueue({ teamId, onItemAction }: DiscoQueueProps) {
                     className="flex-1 bg-green-600 hover:bg-green-700"
                   >
                     <CheckCircle className="w-4 h-4 mr-1" />
-                    Done
+                    Mark Done
                   </Button>
                   <Button
                     size="sm"
@@ -158,11 +282,22 @@ export function DiscoQueue({ teamId, onItemAction }: DiscoQueueProps) {
                       handleQuickAction("flag-issue", item.id)
                     }}
                   >
-                    <Flag className="w-4 h-4" />
+                    <Flag className="w-4 h-4 mr-1" />
+                    Flag Issue
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleQuickAction("view-details", item.id)
+                    }}
+                  >
+                    View Details
                   </Button>
                 </div>
-              )}
-            </CardContent>
+              </CardContent>
+            )}
           </Card>
         ))}
       </div>

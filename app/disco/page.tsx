@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast"
 import { DiscoHeader } from "@/components/disco/disco-header"
 import { DiscoFooter } from "@/components/disco/disco-footer"
 import { DiscoQueue } from "@/components/disco/disco-queue"
+import { DiscoMetrics } from "@/components/disco/disco-metrics"
 import { TeamSelector } from "@/components/disco/team-selector"
 
 export default function DiscoFloorPage() {
@@ -65,8 +66,12 @@ export default function DiscoFloorPage() {
           </div>
         </div>
         
-        {/* Item Queue */}
-        <div className="container mx-auto px-4 py-6">
+        {/* Content */}
+        <div className="container mx-auto px-4 py-6 space-y-8">
+          {/* Metrics Cards */}
+          <DiscoMetrics teamId={selectedTeam} />
+          
+          {/* Item Queue */}
           <DiscoQueue 
             teamId={selectedTeam}
             onItemAction={handleItemAction}
@@ -79,6 +84,7 @@ export default function DiscoFloorPage() {
         onScan={handleScan}
         isScannerOpen={isScannerOpen}
         onScannerToggle={() => setIsScannerOpen(!isScannerOpen)}
+        currentTeam={selectedTeam}
       />
     </div>
   )
