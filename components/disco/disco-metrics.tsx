@@ -1,44 +1,35 @@
 "use client"
 
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { TrendingUp, TrendingDown, Clock, CheckCircle, AlertTriangle } from "lucide-react"
 
 interface DiscoMetricsProps {
   teamId: string
+  factoryId?: string
 }
 
-export function DiscoMetrics({ teamId }: DiscoMetricsProps) {
-  // Mock data - will be replaced with real data from Convex
-  const getTeamMetrics = (teamId: string) => {
-    const baseMetrics = {
-      today: {
-        completed: Math.floor(Math.random() * 50) + 20,
-        inProgress: Math.floor(Math.random() * 15) + 5,
-        onTime: Math.floor(Math.random() * 20) + 15,
-        late: Math.floor(Math.random() * 5) + 1,
-        efficiency: Math.floor(Math.random() * 20) + 80,
-      },
-      week7: {
-        completed: Math.floor(Math.random() * 300) + 150,
-        inProgress: Math.floor(Math.random() * 50) + 20,
-        onTime: Math.floor(Math.random() * 120) + 80,
-        late: Math.floor(Math.random() * 20) + 5,
-        efficiency: Math.floor(Math.random() * 15) + 75,
-      },
-      month30: {
-        completed: Math.floor(Math.random() * 1200) + 600,
-        inProgress: Math.floor(Math.random() * 100) + 50,
-        onTime: Math.floor(Math.random() * 500) + 300,
-        late: Math.floor(Math.random() * 50) + 20,
-        efficiency: Math.floor(Math.random() * 10) + 70,
-      },
-    }
-
-    return baseMetrics
-  }
-
-  const metrics = getTeamMetrics(teamId)
+export function DiscoMetrics({ teamId, factoryId }: DiscoMetricsProps) {
+  // Get real metrics from Convex
+  const todayMetrics = useQuery(api.items.getTeamMetrics, { 
+    teamId, 
+    factoryId: factoryId as any,
+    timeRange: "today" 
+  })
+  
+  const weekMetrics = useQuery(api.items.getTeamMetrics, { 
+    teamId, 
+    factoryId: factoryId as any,
+    timeRange: "week" 
+  })
+  
+  const monthMetrics = useQuery(api.items.getTeamMetrics, { 
+    teamId, 
+    factoryId: factoryId as any,
+    timeRange: "month" 
+  })
 
   const getTeamColors = (teamId: string) => {
     const colors: Record<string, { bg: string; text: string; accent: string }> = {
@@ -52,6 +43,32 @@ export function DiscoMetrics({ teamId }: DiscoMetricsProps) {
   }
 
   const teamColors = getTeamColors(teamId)
+
+  // Loading state
+  if (!todayMetrics || !weekMetrics || !monthMetrics) {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold text-gray-900">Team Performance</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader className="pb-3">
+                <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {[1, 2, 3, 4].map((j) => (
+                  <div key={j} className="flex justify-between items-center">
+                    <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -69,26 +86,26 @@ export function DiscoMetrics({ teamId }: DiscoMetricsProps) {
           <CardContent className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Completed</span>
-              <span className="font-bold text-lg">{metrics.today.completed}</span>
+              <span className="font-bold text-lg">{todayMetrics.completed}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">In Progress</span>
-              <span className="font-medium">{metrics.today.inProgress}</span>
+              <span className="font-medium">{todayMetrics.inProgress}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Efficiency</span>
               <Badge variant="outline" className={`${teamColors.accent} ${teamColors.text} border-0`}>
-                {metrics.today.efficiency}%
+                {todayMetrics.efficiency}%
               </Badge>
             </div>
             <div className="flex gap-2 pt-2">
               <div className="flex items-center gap-1 text-green-600">
                 <CheckCircle className="w-4 h-4" />
-                <span className="text-sm">{metrics.today.onTime}</span>
+                <span className="text-sm">{todayMetrics.onTime}</span>
               </div>
               <div className="flex items-center gap-1 text-red-600">
                 <AlertTriangle className="w-4 h-4" />
-                <span className="text-sm">{metrics.today.late}</span>
+                <span className="text-sm">{todayMetrics.late}</span>
               </div>
             </div>
           </CardContent>
@@ -105,26 +122,26 @@ export function DiscoMetrics({ teamId }: DiscoMetricsProps) {
           <CardContent className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Completed</span>
-              <span className="font-bold text-lg">{metrics.week7.completed}</span>
+              <span className="font-bold text-lg">{weekMetrics.completed}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">In Progress</span>
-              <span className="font-medium">{metrics.week7.inProgress}</span>
+              <span className="font-medium">{weekMetrics.inProgress}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Efficiency</span>
               <Badge variant="outline" className={`${teamColors.accent} ${teamColors.text} border-0`}>
-                {metrics.week7.efficiency}%
+                {weekMetrics.efficiency}%
               </Badge>
             </div>
             <div className="flex gap-2 pt-2">
               <div className="flex items-center gap-1 text-green-600">
                 <CheckCircle className="w-4 h-4" />
-                <span className="text-sm">{metrics.week7.onTime}</span>
+                <span className="text-sm">{weekMetrics.onTime}</span>
               </div>
               <div className="flex items-center gap-1 text-red-600">
                 <AlertTriangle className="w-4 h-4" />
-                <span className="text-sm">{metrics.week7.late}</span>
+                <span className="text-sm">{weekMetrics.late}</span>
               </div>
             </div>
           </CardContent>
@@ -141,26 +158,26 @@ export function DiscoMetrics({ teamId }: DiscoMetricsProps) {
           <CardContent className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Completed</span>
-              <span className="font-bold text-lg">{metrics.month30.completed}</span>
+              <span className="font-bold text-lg">{monthMetrics.completed}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">In Progress</span>
-              <span className="font-medium">{metrics.month30.inProgress}</span>
+              <span className="font-medium">{monthMetrics.inProgress}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Efficiency</span>
               <Badge variant="outline" className={`${teamColors.accent} ${teamColors.text} border-0`}>
-                {metrics.month30.efficiency}%
+                {monthMetrics.efficiency}%
               </Badge>
             </div>
             <div className="flex gap-2 pt-2">
               <div className="flex items-center gap-1 text-green-600">
                 <CheckCircle className="w-4 h-4" />
-                <span className="text-sm">{metrics.month30.onTime}</span>
+                <span className="text-sm">{monthMetrics.onTime}</span>
               </div>
               <div className="flex items-center gap-1 text-red-600">
                 <AlertTriangle className="w-4 h-4" />
-                <span className="text-sm">{metrics.month30.late}</span>
+                <span className="text-sm">{monthMetrics.late}</span>
               </div>
             </div>
           </CardContent>

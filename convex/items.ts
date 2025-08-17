@@ -1763,3 +1763,282 @@ export const getItemHistory = query({
       .collect();
   },
 });
+
+// Get items by team/stage for Disco Floor Application
+export const getItemsByTeam = query({
+  args: { 
+    teamId: v.string(),
+    factoryId: v.optional(v.id("factories"))
+  },
+  handler: async (ctx, args) => {
+    // Map team names to stage names for filtering
+    const teamStageMap: Record<string, string[]> = {
+      production: ["Assembly", "Production", "Manufacturing"],
+      cutting: ["Cut", "Cutting", "Fabric Cutting"],
+      sewing: ["Sew", "Sewing", "Assembly"],
+      quality: ["QC", "Quality Control", "Inspection"],
+      packaging: ["Pack", "Packaging", "Final Packaging"],
+    }
+
+    const stageNames = teamStageMap[args.teamId] || []
+    
+    // Get all active items
+    const allItems = await ctx.db
+      .query("items")
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .collect()
+
+    // Filter items by team's stages and factory
+    const teamItems = allItems.filter(item => {
+      // Get the workflow for this item
+      const workflow = ctx.db.get(item.workflowId)
+      if (!workflow) return false
+      
+      // Get current stage
+      const currentStage = workflow.stages.find((s: any) => s.id === item.currentStageId)
+      if (!currentStage) return false
+      
+      // Check if current stage matches team's stages
+      const stageMatches = stageNames.some(name => 
+        currentStage.name.toLowerCase().includes(name.toLowerCase())
+      )
+      
+      // Check factory filter if provided
+      const factoryMatches = !args.factoryId || item.factoryId === args.factoryId
+      
+      return stageMatches && factoryMatches
+    })
+
+    // Get workflow details for each item
+    const itemsWithWorkflows = await Promise.all(
+      teamItems.map(async (item) => {
+        const workflow = await ctx.db.get(item.workflowId)
+        const currentStage = workflow?.stages.find((s: any) => s.id === item.currentStageId)
+        const nextStage = workflow?.stages.find((s: any) => s.order === (currentStage?.order || 0) + 1)
+        
+        return {
+          ...item,
+          workflow,
+          currentStage,
+          nextStage,
+          canAdvance: !!nextStage,
+          requiredActions: currentStage?.actions || [],
+        }
+      })
+    )
+
+    return itemsWithWorkflows
+  },
+})
+
+// Validate and advance item with workflow rules
+export const advanceItemWithValidation = mutation({
+  args: {
+    itemId: v.id("items"),
+    userId: v.string(),
+    completedActions: v.array(v.object({
+      id: v.string(),
+      type: v.union(v.literal("scan"), v.literal("photo"), v.literal("note"), v.literal("approval"), v.literal("measurement"), v.literal("inspection")),
+      label: v.string(),
+      data: v.optional(v.any()),
+    })),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const item = await ctx.db.get(args.itemId)
+    if (!item) throw new Error("Item not found")
+    
+    const workflow = await ctx.db.get(item.workflowId)
+    if (!workflow) throw new Error("Workflow not found")
+    
+    const currentStage = workflow.stages.find(stage => stage.id === item.currentStageId)
+    if (!currentStage) throw new Error("Current stage not found")
+    
+    // Validate required actions are completed
+    const requiredActions = currentStage.actions?.filter(action => action.required) || []
+    const completedActionIds = args.completedActions.map(action => action.id)
+    
+    const missingActions = requiredActions.filter(action => 
+      !completedActionIds.includes(action.id)
+    )
+    
+    if (missingActions.length > 0) {
+      throw new Error(`Missing required actions: ${missingActions.map(a => a.label).join(", ")}`)
+    }
+    
+    // Validate action data based on workflow rules
+    for (const completedAction of args.completedActions) {
+      const requiredAction = requiredActions.find(a => a.id === completedAction.id)
+      if (!requiredAction) continue
+      
+      // Validate scan actions
+      if (requiredAction.type === "scan" && completedAction.type === "scan") {
+        if (requiredAction.config?.expectedValue && 
+            completedAction.data?.scannedValue !== requiredAction.config.expectedValue) {
+          throw new Error(`Invalid scan value. Expected: ${requiredAction.config.expectedValue}`)
+        }
+      }
+      
+      // Validate approval actions
+      if (requiredAction.type === "approval" && completedAction.type === "approval") {
+        if (!completedAction.data?.approved) {
+          throw new Error("Approval required to advance")
+        }
+      }
+      
+      // Validate measurement actions
+      if (requiredAction.type === "measurement" && completedAction.type === "measurement") {
+        const value = completedAction.data?.value
+        const min = requiredAction.config?.minValue
+        const max = requiredAction.config?.maxValue
+        
+        if (min !== undefined && value < min) {
+          throw new Error(`Measurement too low. Minimum: ${min}`)
+        }
+        if (max !== undefined && value > max) {
+          throw new Error(`Measurement too high. Maximum: ${max}`)
+        }
+      }
+    }
+    
+    // All validations passed, advance to next stage
+    const nextStage = workflow.stages.find(stage => stage.order === currentStage.order + 1)
+    if (!nextStage) {
+      // No next stage, move to completed items
+      await moveToCompletedItems(ctx, item, currentStage, args.userId, args.notes)
+      return { status: "completed", message: "Item completed successfully" }
+    }
+    
+    const now = Date.now()
+    await ctx.db.patch(args.itemId, {
+      currentStageId: nextStage.id,
+      updatedAt: now,
+    })
+    
+    // Add to history - complete current stage
+    await ctx.db.insert("itemHistory", {
+      itemId: args.itemId,
+      stageId: currentStage.id,
+      stageName: currentStage.name,
+      action: "completed",
+      timestamp: now,
+      userId: args.userId,
+      notes: args.notes,
+      metadata: { 
+        stageOrder: currentStage.order,
+        completedActions: args.completedActions,
+      },
+    })
+    
+    // Add to history - start next stage
+    await ctx.db.insert("itemHistory", {
+      itemId: args.itemId,
+      stageId: nextStage.id,
+      stageName: nextStage.name,
+      action: "started",
+      timestamp: now,
+      userId: args.userId,
+      metadata: { stageOrder: nextStage.order },
+    })
+
+    return { 
+      status: "advanced", 
+      nextStage,
+      message: `Advanced to ${nextStage.name}` 
+    }
+  },
+})
+
+// Get team performance metrics for Disco Floor Application
+export const getTeamMetrics = query({
+  args: { 
+    teamId: v.string(),
+    factoryId: v.optional(v.id("factories")),
+    timeRange: v.union(v.literal("today"), v.literal("week"), v.literal("month"))
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now()
+    let startTime: number
+    
+    switch (args.timeRange) {
+      case "today":
+        startTime = now - (24 * 60 * 60 * 1000) // 24 hours
+        break
+      case "week":
+        startTime = now - (7 * 24 * 60 * 60 * 1000) // 7 days
+        break
+      case "month":
+        startTime = now - (30 * 24 * 60 * 60 * 1000) // 30 days
+        break
+      default:
+        startTime = now - (24 * 60 * 60 * 1000)
+    }
+    
+    // Get completed items in time range
+    const completedItems = await ctx.db
+      .query("completedItems")
+      .filter((q) => 
+        q.and(
+          q.gte(q.field("completedAt"), startTime),
+          q.eq(q.field("status"), "completed")
+        )
+      )
+      .collect()
+    
+    // Get active items
+    const activeItems = await ctx.db
+      .query("items")
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .collect()
+    
+    // Filter by team and factory
+    const teamStageMap: Record<string, string[]> = {
+      production: ["Assembly", "Production", "Manufacturing"],
+      cutting: ["Cut", "Cutting", "Fabric Cutting"],
+      sewing: ["Sew", "Sewing", "Assembly"],
+      quality: ["QC", "Quality Control", "Inspection"],
+      packaging: ["Pack", "Packaging", "Final Packaging"],
+    }
+    
+    const stageNames = teamStageMap[args.teamId] || []
+    
+    const filterByTeam = (items: any[]) => {
+      return items.filter(item => {
+        if (args.factoryId && item.factoryId !== args.factoryId) return false
+        
+        // For completed items, check final stage
+        if (item.finalStageName) {
+          return stageNames.some(name => 
+            item.finalStageName.toLowerCase().includes(name.toLowerCase())
+          )
+        }
+        
+        // For active items, we'd need to check workflow (simplified for now)
+        return true
+      })
+    }
+    
+    const teamCompleted = filterByTeam(completedItems)
+    const teamActive = filterByTeam(activeItems)
+    
+    // Calculate metrics
+    const completed = teamCompleted.length
+    const inProgress = teamActive.length
+    const onTime = teamCompleted.filter(item => {
+      // Calculate if completed on time (simplified logic)
+      const estimatedDuration = 4 * 60 * 60 * 1000 // 4 hours default
+      return (item.completedAt - item.startedAt) <= estimatedDuration
+    }).length
+    const late = completed - onTime
+    const efficiency = completed > 0 ? Math.round((onTime / completed) * 100) : 0
+    
+    return {
+      completed,
+      inProgress,
+      onTime,
+      late,
+      efficiency,
+      timeRange: args.timeRange,
+    }
+  },
+})
