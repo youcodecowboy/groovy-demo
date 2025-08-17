@@ -6,24 +6,42 @@ import { api } from "@/convex/_generated/api"
 
 export function useOrg() {
   const ensure = useMutation(api.tenancy.ensureOrgForCurrentUser)
+  const upsertOrg = useMutation(api.tenancy.upsertOrganization)
   const [org, setOrg] = useState<{ name: string; slug: string } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    void ensure().then((res) => {
-      setIsLoading(false)
-      if (res?.name) {
-        setOrg({ name: res.name, slug: res.slug })
-      } else {
-        // User has no organization - they need to create one
-        setOrg(null)
+    const initializeOrg = async () => {
+      try {
+        // First try to ensure org exists
+        const result = await ensure()
+        if (result?.name) {
+          setOrg({ name: result.name, slug: result.slug })
+        } else {
+          // If no org exists, create a default one
+          const defaultResult = await upsertOrg({ name: "Development Company" })
+          if (defaultResult?.name) {
+            setOrg({ name: defaultResult.name, slug: defaultResult.slug })
+          }
+        }
+      } catch (error) {
+        console.warn("Failed to initialize organization:", error)
+        // Try to create a default organization as fallback
+        try {
+          const defaultResult = await upsertOrg({ name: "Development Company" })
+          if (defaultResult?.name) {
+            setOrg({ name: defaultResult.name, slug: defaultResult.slug })
+          }
+        } catch (fallbackError) {
+          console.error("Failed to create default organization:", fallbackError)
+        }
+      } finally {
+        setIsLoading(false)
       }
-    }).catch((error) => {
-      console.warn("Failed to check organization:", error)
-      setIsLoading(false)
-      setOrg(null)
-    })
-  }, [ensure])
+    }
+
+    void initializeOrg()
+  }, [ensure, upsertOrg])
 
   return { org, setOrg, isLoading }
 }

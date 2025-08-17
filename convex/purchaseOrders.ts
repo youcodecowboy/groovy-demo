@@ -165,4 +165,15 @@ export const completePurchaseOrder = mutation({
       notes: args.notes,
     })
   },
-}) 
+})
+
+// Get all purchase orders
+export const getAll = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db
+      .query("purchaseOrders")
+      .order("desc")
+      .collect()
+  },
+})

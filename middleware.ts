@@ -1,12 +1,10 @@
-import { clerkMiddleware } from '@clerk/nextjs/server'
+// import { clerkMiddleware } from '@clerk/nextjs/server'
 
-export default clerkMiddleware({
-  publicRoutes: [
-    '/',
-    '/sign-in(.*)',
-    '/sign-up(.*)'
-  ]
-})
+// Disabled auth middleware for faster development
+export default function middleware() {
+  // Pass through all requests without auth checks
+  return
+}
 
 // Simpler, Clerk-recommended matcher for Next.js App Router
 export const config = {

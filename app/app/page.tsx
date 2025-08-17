@@ -36,6 +36,9 @@ export default function TenantAppPage() {
   const [orgName, setOrgName] = useState<string | null>(null)
   const [isEditingOrg, setIsEditingOrg] = useState(false)
   const [editOrgName, setEditOrgName] = useState("")
+  
+  // Get active workflows for onboarding progress
+  const activeWorkflows = useQuery(api.workflows.getActive)
 
   useEffect(() => {
     if (layout && Array.isArray(layout) && layout.length === 0) {
@@ -325,41 +328,70 @@ export default function TenantAppPage() {
         <div className="mt-5">
           <div className="rounded-full border border-black/10 bg-gray-100 p-1">
             <div className="flex h-4 w-full gap-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className={`flex-1 rounded-full ${0 > i ? "bg-black" : "bg-gray-300"}`} />
-              ))}
+              {Array.from({ length: 5 }).map((_, i) => {
+                const isComplete = i === 0 && activeWorkflows && activeWorkflows.length > 0
+                return (
+                  <div key={i} className={`flex-1 rounded-full ${isComplete ? "bg-black" : "bg-gray-300"}`} />
+                )
+              })}
             </div>
           </div>
-          <div className="mt-2 text-right text-sm text-gray-600">0/5 complete</div>
+          <div className="mt-2 text-right text-sm text-gray-600">
+            {activeWorkflows && activeWorkflows.length > 0 ? "1/5 complete" : "0/5 complete"}
+          </div>
         </div>
 
         {/* Microsteps - full width rows with Configure buttons */}
         <div className="mt-5 space-y-3">
           {[
-            { label: "Build a workflow", icon: Workflow, minutes: 10 },
-            { label: "Add Features", icon: Puzzle, minutes: 10 },
-            { label: "Configure Disco", icon: Wrench, minutes: 5 },
-            { label: "Invite team", icon: Users, minutes: 3 },
-            { label: "Add data", icon: Database, minutes: 5 },
-          ].map((step, index) => (
-            <div key={step.label} className="flex items-center justify-between rounded-lg border border-black/10 bg-gray-50 p-4">
-              <div className="flex items-center gap-4">
-                <div className="grid h-12 w-12 place-items-center rounded-full border border-black/10 bg-white text-[14px] font-medium">
-                  {index + 1}
-                </div>
-                <div className="flex items-center gap-3">
-                  <step.icon className="h-6 w-6" />
-        <div>
-                    <div className="text-lg md:text-xl font-semibold">{step.label}</div>
-                    <div className="text-sm text-gray-600 italic">Not configured • <span className="inline-flex items-center gap-1"><Clock className="h-4 w-4" /> ~{step.minutes} mins</span></div>
+            { label: "Build a workflow", icon: Workflow, minutes: 10, key: "workflow" },
+            { label: "Add Features", icon: Puzzle, minutes: 10, key: "features" },
+            { label: "Configure Disco", icon: Wrench, minutes: 5, key: "disco" },
+            { label: "Invite team", icon: Users, minutes: 3, key: "team" },
+            { label: "Add data", icon: Database, minutes: 5, key: "data" },
+          ].map((step, index) => {
+            const isWorkflowComplete = step.key === "workflow" && activeWorkflows && activeWorkflows.length > 0
+            const isComplete = isWorkflowComplete
+            
+            return (
+              <div key={step.label} className={`flex items-center justify-between rounded-lg border border-black/10 p-4 ${isComplete ? "bg-green-50 border-green-200" : "bg-gray-50"}`}>
+                <div className="flex items-center gap-4">
+                  <div className={`grid h-12 w-12 place-items-center rounded-full border text-[14px] font-medium ${isComplete ? "border-green-300 bg-green-100 text-green-700" : "border-black/10 bg-white"}`}>
+                    {isComplete ? <Check className="h-6 w-6" /> : index + 1}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <step.icon className={`h-6 w-6 ${isComplete ? "text-green-600" : ""}`} />
+                    <div>
+                      <div className="text-lg md:text-xl font-semibold">{step.label}</div>
+                      <div className="text-sm text-gray-600 italic">
+                        {isComplete ? (
+                          <span className="text-green-600 font-medium">Complete</span>
+                        ) : (
+                          <>
+                            Not configured • <span className="inline-flex items-center gap-1"><Clock className="h-4 w-4" /> ~{step.minutes} mins</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
+                <Button 
+                  className={`h-11 rounded-full border px-6 ${
+                    isComplete 
+                      ? "border-green-300 bg-green-100 text-green-700 hover:bg-green-200" 
+                      : "border-black bg-white text-black hover:bg-black hover:text-white"
+                  }`}
+                  onClick={() => {
+                    if (step.key === "workflow") {
+                      window.location.href = "/app/workflows"
+                    }
+                  }}
+                >
+                  {isComplete ? "View" : "Configure"} <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
               </div>
-              <Button className="h-11 rounded-full border border-black bg-white px-6 text-black hover:bg-black hover:text-white">
-                Configure <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         <div className="mt-5 flex items-center gap-3">
@@ -439,5 +471,6 @@ export default function TenantAppPage() {
     </div>
   )
 }
+
 
 

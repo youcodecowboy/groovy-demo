@@ -60,6 +60,8 @@ export default defineSchema({
       isActive: v.boolean(),
       allowedNextStageIds: v.optional(v.array(v.string())), // IDs of stages that can be advanced to
       assignedLocationIds: v.optional(v.array(v.id("locations"))),
+      color: v.optional(v.string()), // Color for UI display
+      position: v.optional(v.object({ x: v.number(), y: v.number() })), // Position for canvas layout
     })),
     isActive: v.boolean(),
     createdAt: v.number(),
@@ -338,9 +340,40 @@ export default defineSchema({
     isActive: v.boolean(),
     capacity: v.optional(v.number()),
     specialties: v.optional(v.array(v.string())), // Production capabilities
+    // Public profile fields
+    publicProfile: v.optional(v.object({
+      isEnabled: v.boolean(),
+      qrCode: v.optional(v.string()), // QR code data for scanning
+      slug: v.optional(v.string()), // URL slug for public profile
+      description: v.optional(v.string()),
+      leadTime: v.optional(v.number()), // Average lead time in days
+      responseTime: v.optional(v.number()), // Average response time in hours
+      certifications: v.optional(v.array(v.string())),
+      photoGallery: v.optional(v.array(v.string())), // Array of image URLs
+      whatWeMake: v.optional(v.string()), // Description of products/services
+      minimumOrderQuantity: v.optional(v.number()),
+      paymentTerms: v.optional(v.string()),
+      shippingInfo: v.optional(v.string()),
+      contactInfo: v.optional(v.object({
+        email: v.string(),
+        phone: v.string(),
+        website: v.string(),
+      })),
+      socialLinks: v.optional(v.object({
+        linkedin: v.optional(v.string()),
+        instagram: v.optional(v.string()),
+        facebook: v.optional(v.string()),
+      })),
+      verifiedMetrics: v.optional(v.object({
+        totalOrders: v.number(),
+        averageRating: v.number(),
+        onTimeDelivery: v.number(), // Percentage
+        customerSatisfaction: v.number(), // Percentage
+      })),
+    })),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("by_admin", ["adminUserId"]).index("by_active", ["isActive"]),
+  }).index("by_admin", ["adminUserId"]).index("by_active", ["isActive"]).index("by_slug", ["publicProfile.slug"]),
 
   // Brand-Factory relationships table
   brandFactoryRelations: defineTable({
@@ -373,4 +406,85 @@ export default defineSchema({
     notes: v.optional(v.string()),
     metadata: v.optional(v.any()),
   }).index("by_brand", ["brandId"]).index("by_factory", ["factoryId"]).index("by_status", ["status"]),
+
+  // Customers table - for customer management
+  customers: defineTable({
+    orgId: v.optional(v.id("organizations")),
+    name: v.string(),
+    companyName: v.optional(v.string()),
+    status: v.union(v.literal("active"), v.literal("inactive"), v.literal("prospect"), v.literal("lead")),
+    type: v.union(v.literal("individual"), v.literal("business"), v.literal("enterprise")),
+    industry: v.optional(v.string()),
+    website: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    email: v.optional(v.string()),
+    address: v.optional(v.object({
+      street: v.string(),
+      city: v.string(),
+      state: v.string(),
+      zipCode: v.string(),
+      country: v.string(),
+    })),
+    notes: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
+    assignedTo: v.optional(v.string()), // User ID assigned to this customer
+    source: v.optional(v.string()), // How they found us
+    value: v.optional(v.number()), // Customer lifetime value
+    lastContact: v.optional(v.number()), // Last contact timestamp
+    nextFollowUp: v.optional(v.number()), // Next follow-up date
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    createdBy: v.string(),
+  }).index("by_status", ["status"]).index("by_type", ["type"]).index("by_assigned", ["assignedTo"]).index("by_active", ["isActive"]),
+
+  // Customer contacts table - for individual contacts within customers
+  customerContacts: defineTable({
+    orgId: v.optional(v.id("organizations")),
+    customerId: v.id("customers"),
+    firstName: v.string(),
+    lastName: v.string(),
+    title: v.optional(v.string()),
+    email: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    mobile: v.optional(v.string()),
+    isPrimary: v.boolean(), // Primary contact for the customer
+    department: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_customer", ["customerId"]).index("by_primary", ["customerId", "isPrimary"]).index("by_active", ["isActive"]),
+
+  // Customer interactions table - for tracking all customer touchpoints
+  customerInteractions: defineTable({
+    orgId: v.optional(v.id("organizations")),
+    customerId: v.id("customers"),
+    contactId: v.optional(v.id("customerContacts")),
+    type: v.union(v.literal("call"), v.literal("email"), v.literal("meeting"), v.literal("note"), v.literal("quote"), v.literal("order"), v.literal("support")),
+    subject: v.string(),
+    description: v.string(),
+    outcome: v.optional(v.string()),
+    followUpRequired: v.boolean(),
+    followUpDate: v.optional(v.number()),
+    assignedTo: v.string(), // User ID
+    createdAt: v.number(),
+    createdBy: v.string(),
+  }).index("by_customer", ["customerId"]).index("by_contact", ["contactId"]).index("by_type", ["type"]).index("by_assigned", ["assignedTo"]),
+
+  // Factory profile views and QR scans tracking
+  factoryProfileViews: defineTable({
+    orgId: v.optional(v.id("organizations")),
+    factoryId: v.id("factories"),
+    visitorType: v.union(v.literal("qr_scan"), v.literal("direct_visit"), v.literal("search")),
+    visitorInfo: v.optional(v.object({
+      ipAddress: v.string(),
+      userAgent: v.string(),
+      location: v.optional(v.string()),
+      referrer: v.optional(v.string()),
+    })),
+    actionTaken: v.optional(v.union(v.literal("viewed_profile"), v.literal("contacted"), v.literal("added_to_crm"), v.literal("requested_quote"))),
+    brandId: v.optional(v.id("brands")), // If visitor is a known brand
+    createdAt: v.number(),
+  }).index("by_factory", ["factoryId"]).index("by_visitor_type", ["visitorType"]).index("by_action", ["actionTaken"]),
 }); 

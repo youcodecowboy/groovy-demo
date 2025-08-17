@@ -1,4 +1,5 @@
 import { mutation } from "./_generated/server";
+import { resolveOrgId } from "./util";
 
 // Clear all data and create fresh demo data
 export const resetAllData = mutation({
@@ -479,9 +480,9 @@ export const seedDemoData = mutation({
       }
     });
 
-    // Create demo factory
-    const factoryId = await ctx.db.insert("factories", {
-      name: "Groovy Labs",
+          // Create demo factory
+      const factoryId = await ctx.db.insert("factories", {
+        name: "Groovy Labs",
       location: "San Francisco, CA",
       adminUserId: "admin-user",
       isActive: true,
@@ -859,5 +860,136 @@ export const seedDemoData = mutation({
       brandId,
       factoryId
     };
+  },
+});
+
+export const seedFactories = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const orgId = await resolveOrgId(ctx);
+    const now = Date.now();
+
+    // Create sample factories with public profiles
+    const factory1 = await ctx.db.insert("factories", {
+      orgId,
+      name: "Precision Manufacturing Co.",
+      location: "Shenzhen, China",
+      adminUserId: "mock-user-123",
+      isActive: true,
+      capacity: 10000,
+      specialties: ["Electronics", "Plastic Injection", "PCB Assembly"],
+      publicProfile: {
+        isEnabled: true,
+        qrCode: "http://localhost:3000/factory/precision-manufacturing",
+        slug: "precision-manufacturing",
+        description: "Leading manufacturer of precision electronic components and assemblies. We specialize in high-quality PCB manufacturing, plastic injection molding, and complete product assembly.",
+        leadTime: 21,
+        responseTime: 4,
+        certifications: ["ISO 9001", "ISO 14001", "RoHS Compliant", "UL Certified"],
+        photoGallery: [],
+        whatWeMake: "Electronic components, PCB assemblies, plastic enclosures, complete product assembly, custom manufacturing solutions",
+        minimumOrderQuantity: 500,
+        paymentTerms: "Net 30",
+        shippingInfo: "FOB Shenzhen, DDP available",
+        contactInfo: {
+          email: "sales@precisionmanufacturing.com",
+          phone: "+86 755 1234 5678",
+          website: "https://precisionmanufacturing.com",
+        },
+        socialLinks: {
+          linkedin: "https://linkedin.com/company/precision-manufacturing",
+          instagram: "https://instagram.com/precisionmanufacturing",
+        },
+        verifiedMetrics: {
+          totalOrders: 1250,
+          averageRating: 4.8,
+          onTimeDelivery: 98,
+          customerSatisfaction: 96,
+        },
+      },
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const factory2 = await ctx.db.insert("factories", {
+      orgId,
+      name: "Textile Excellence Ltd.",
+      location: "Dhaka, Bangladesh",
+      adminUserId: "mock-user-123",
+      isActive: true,
+      capacity: 50000,
+      specialties: ["Apparel", "Textiles", "Dyeing", "Printing"],
+      publicProfile: {
+        isEnabled: true,
+        qrCode: "http://localhost:3000/factory/textile-excellence",
+        slug: "textile-excellence",
+        description: "Premium textile and apparel manufacturer with over 15 years of experience. We produce high-quality garments for leading global brands with sustainable practices.",
+        leadTime: 45,
+        responseTime: 8,
+        certifications: ["GOTS Certified", "OEKO-TEX Standard 100", "WRAP Certified", "BSCI"],
+        photoGallery: [],
+        whatWeMake: "Cotton t-shirts, polo shirts, hoodies, sweatshirts, denim jeans, activewear, sustainable fashion",
+        minimumOrderQuantity: 1000,
+        paymentTerms: "50% advance, 50% before shipment",
+        shippingInfo: "FOB Chittagong, air freight available",
+        contactInfo: {
+          email: "info@textileexcellence.com",
+          phone: "+880 2 1234 5678",
+          website: "https://textileexcellence.com",
+        },
+        socialLinks: {
+          linkedin: "https://linkedin.com/company/textile-excellence",
+          facebook: "https://facebook.com/textileexcellence",
+        },
+        verifiedMetrics: {
+          totalOrders: 890,
+          averageRating: 4.6,
+          onTimeDelivery: 95,
+          customerSatisfaction: 94,
+        },
+      },
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const factory3 = await ctx.db.insert("factories", {
+      orgId,
+      name: "MetalWorks International",
+      location: "Istanbul, Turkey",
+      adminUserId: "mock-user-123",
+      isActive: true,
+      capacity: 8000,
+      specialties: ["Metal Fabrication", "CNC Machining", "Welding", "Finishing"],
+      publicProfile: {
+        isEnabled: false, // This one is inactive to show the difference
+        qrCode: "",
+        slug: "metalworks-international",
+        description: "Specialized metal fabrication and CNC machining services. We work with steel, aluminum, brass, and other metals for custom projects.",
+        leadTime: 35,
+        responseTime: 12,
+        certifications: ["ISO 9001", "AS9100", "Welding Certifications"],
+        photoGallery: [],
+        whatWeMake: "Custom metal parts, CNC machined components, welded assemblies, metal furniture, industrial equipment",
+        minimumOrderQuantity: 100,
+        paymentTerms: "Net 45",
+        shippingInfo: "FOB Istanbul, worldwide shipping",
+        contactInfo: {
+          email: "sales@metalworks.com",
+          phone: "+90 212 1234 5678",
+          website: "https://metalworks.com",
+        },
+        socialLinks: {},
+        verifiedMetrics: {
+          totalOrders: 450,
+          averageRating: 4.7,
+          onTimeDelivery: 92,
+          customerSatisfaction: 93,
+        },
+      },
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return { factory1, factory2, factory3 };
   },
 });

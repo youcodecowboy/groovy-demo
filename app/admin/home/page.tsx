@@ -1,4 +1,4 @@
-import { currentUser } from "@clerk/nextjs/server"
+import { currentUser } from "@/lib/auth"
 import { isAdminUser } from "@/lib/auth"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"

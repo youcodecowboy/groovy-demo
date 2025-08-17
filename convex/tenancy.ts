@@ -1,23 +1,62 @@
 import { query, mutation } from "./_generated/server"
 import { v } from "convex/values"
 
+// Mock user identity for development (no auth)
+const MOCK_USER_ID = "mock-user-123"
+const MOCK_ORG_ID = "mock-org-123"
+
+// Helper function to get mock identity
+const getMockIdentity = () => ({
+  tokenIdentifier: MOCK_USER_ID,
+  name: "Developer User",
+  email: "dev@example.com",
+  pictureUrl: "/placeholder-user.jpg",
+  emailVerified: true,
+  issuer: "mock",
+  subject: MOCK_USER_ID,
+})
+
 // Resolve orgs for the current user
 export const getMemberships = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) return []
+    // Use mock identity instead of auth
+    const identity = getMockIdentity()
     return await ctx.db.query("memberships").withIndex("by_user", (q) => q.eq("userId", identity.tokenIdentifier)).collect()
   }
 })
 
-// Get the current organization profile (name, slug)
+// Get the current organization profile (name, slug) - read only
 export const getOrganization = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) return null
+    // Use mock identity instead of auth
+    const identity = getMockIdentity()
+    
+    // Try to find membership
+    const membership = await ctx.db
+      .query("memberships")
+      .withIndex("by_user", (q) => q.eq("userId", identity.tokenIdentifier))
+      .first()
+
+    if (!membership) {
+      return null
+    }
+
+    const org = await ctx.db.get(membership.orgId)
+    if (!org) return null
+    return { name: org.name, slug: org.slug }
+  }
+})
+
+// Ensure organization exists (creates if needed)
+export const ensureOrganization = mutation({
+  args: {},
+  handler: async (ctx) => {
+    // Use mock identity instead of auth
+    const identity = getMockIdentity()
     const now = Date.now()
+    
     // Try to find membership
     let membership = await ctx.db
       .query("memberships")
@@ -26,8 +65,8 @@ export const getOrganization = query({
 
     // Auto-provision a minimal org if none exists for this user
     if (!membership) {
-      const defaultName = "Your Company"
-      const defaultSlug = `your-company-${Math.random().toString(36).slice(2, 7)}`
+      const defaultName = "Development Company"
+      const defaultSlug = `dev-company-${Math.random().toString(36).slice(2, 7)}`
       const orgId = await ctx.db.insert("organizations", {
         name: defaultName,
         slug: defaultSlug,
@@ -63,8 +102,8 @@ export const getOrganization = query({
 export const getOrgProfile = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) return null
+    // Use mock identity instead of auth
+    const identity = getMockIdentity()
     const membership = await ctx.db
       .query("memberships")
       .withIndex("by_user", (q) => q.eq("userId", identity.tokenIdentifier))
@@ -80,8 +119,8 @@ export const getOrgProfile = query({
 export const ensureOrgForCurrentUser = mutation({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Unauthorized")
+    // Use mock identity instead of auth
+    const identity = getMockIdentity()
     
     const membership = await ctx.db
       .query("memberships")
@@ -107,8 +146,8 @@ export const updateOrganizationName = mutation({
   args: { name: v.string() },
   handler: async (ctx, { name }) => {
     try {
-      const identity = await ctx.auth.getUserIdentity()
-      if (!identity) throw new Error("Unauthorized")
+      // Use mock identity instead of auth
+      const identity = getMockIdentity()
       const now = Date.now()
       const slug = name
         .toLowerCase()
@@ -157,8 +196,8 @@ export const updateOrganizationName = mutation({
 export const upsertOrganization = mutation({
   args: { name: v.string() },
   handler: async (ctx, { name }) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Unauthorized")
+    // Use mock identity instead of auth
+    const identity = getMockIdentity()
     const now = Date.now()
     const slug = name
       .toLowerCase()
@@ -206,8 +245,8 @@ export const upsertOrganization = mutation({
 export const createOrganization = mutation({
   args: { name: v.string(), slug: v.string() },
   handler: async (ctx, { name, slug }) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Unauthorized")
+    // Use mock identity instead of auth
+    const identity = getMockIdentity()
     const now = Date.now()
     
     // Check if user already has an organization
@@ -246,13 +285,13 @@ export const createOrganization = mutation({
 export const cleanupDefaultOrgs = mutation({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Unauthorized")
+    // Use mock identity instead of auth
+    const identity = getMockIdentity()
     
     // Find organizations with default names
     const defaultOrgs = await ctx.db
       .query("organizations")
-      .filter((q) => q.eq(q.field("name"), "Your Company"))
+      .filter((q) => q.eq(q.field("name"), "Development Company"))
       .collect()
     
     for (const org of defaultOrgs) {
@@ -298,8 +337,8 @@ export const cleanupDefaultOrgs = mutation({
 export const debugUserOrg = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) return { error: "Not authenticated" }
+    // Use mock identity instead of auth
+    const identity = getMockIdentity()
     
     const membership = await ctx.db
       .query("memberships")
@@ -330,8 +369,8 @@ export const debugUserOrg = query({
 export const deleteCurrentUserOrg = mutation({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error("Unauthorized")
+    // Use mock identity instead of auth
+    const identity = getMockIdentity()
     
     const membership = await ctx.db
       .query("memberships")
@@ -386,6 +425,59 @@ export const deleteCurrentUserOrg = mutation({
       deletedMemberships: memberships.length,
       deletedDashboards: dashboards.length,
       deletedSettings: settings.length
+    }
+  }
+})
+
+// Simple test function with no auth dependencies
+export const simpleTest = query({
+  args: {},
+  handler: async (ctx) => {
+    return {
+      message: "Simple test successful",
+      timestamp: Date.now(),
+      mockUserId: "mock-user-123"
+    }
+  }
+})
+
+// Test function to verify mock tenancy is working
+export const testMockTenancy = query({
+  args: {},
+  handler: async (ctx) => {
+    // Use mock identity instead of auth
+    const identity = getMockIdentity()
+    
+    const membership = await ctx.db
+      .query("memberships")
+      .withIndex("by_user", (q) => q.eq("userId", identity.tokenIdentifier))
+      .first()
+    
+    if (!membership) {
+      return { 
+        status: "no_org", 
+        message: "No organization found - will be created on first mutation",
+        userId: identity.tokenIdentifier 
+      }
+    }
+    
+    const org = await ctx.db.get(membership.orgId)
+    if (!org) {
+      return { 
+        status: "org_not_found", 
+        message: "Organization not found",
+        userId: identity.tokenIdentifier 
+      }
+    }
+    
+    return {
+      status: "success",
+      message: "Organization found",
+      userId: identity.tokenIdentifier,
+      orgId: org._id,
+      orgName: org.name,
+      orgSlug: org.slug,
+      membershipRole: membership.role
     }
   }
 })

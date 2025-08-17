@@ -18,15 +18,19 @@ import {
     SidebarInset,
     SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { Home, Workflow, MessageSquare, Settings } from "lucide-react"
-import { SignedIn, UserButton } from "@clerk/nextjs"
+import { Home, Workflow, MessageSquare, Settings, Package, FileText, Users, Users2 } from "lucide-react"
+import { SignedIn, UserButton } from "@/components/ui/mock-auth-components"
 
 const navigation = [
   {
     title: "Core",
     items: [
       { name: "Home", href: "/app", icon: Home, exact: true },
-      { name: "Workflow Builder", href: "/app/workflow", icon: Workflow },
+      { name: "Workflows", href: "/app/workflows", icon: Workflow },
+      { name: "Items", href: "/app/items", icon: Package },
+      { name: "Teams", href: "/app/teams", icon: Users },
+      { name: "Customers", href: "/app/customers", icon: Users2 },
+      { name: "Orders", href: "/app/orders", icon: FileText },
       { name: "Messages", href: "/app/messages", icon: MessageSquare },
       { name: "Settings", href: "/app/settings", icon: Settings },
     ],
@@ -78,9 +82,9 @@ export function AppSidebar({ children }: AppSidebarProps) {
           ))}
           <div className="mt-8 border-t pt-6">
             <SignedIn>
-              <div className="flex items-center justify-between px-2">
-                <span className="text-sm text-gray-600 italic">Account</span>
-                <UserButton appearance={{ elements: { userButtonAvatarBox: "h-9 w-9" } }} />
+              <div className="px-2">
+                <span className="text-sm text-gray-600 italic mb-3 block">Account</span>
+                <UserButton />
               </div>
             </SignedIn>
           </div>

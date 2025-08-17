@@ -1750,4 +1750,16 @@ export const listItemsByBrand = query({
       .order("desc")
       .collect()
   },
-}); 
+});
+
+// Get item history
+export const getItemHistory = query({
+  args: { itemId: v.id("items") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("itemHistory")
+      .filter((q) => q.eq(q.field("itemId"), args.itemId))
+      .order("asc")
+      .collect();
+  },
+});

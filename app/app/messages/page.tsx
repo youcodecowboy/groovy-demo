@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Send, Search, Plus, Mail, Paperclip, Package, ChevronDown, X, Clock, CheckCheck } from "lucide-react"
-import { useUser } from "@clerk/nextjs"
+import { useUser } from "@/components/ui/mock-auth-components"
 import { useToast } from "@/hooks/use-toast"
 
 export default function MessagesPage() {
@@ -33,7 +33,7 @@ export default function MessagesPage() {
   const [quickReplyAttachedItemId, setQuickReplyAttachedItemId] = useState("")
 
   // Standardize on Clerk identity; until recipients are Clerk-synced, use email string keys
-  const currentUserId = user?.primaryEmailAddress?.emailAddress || ""
+  const currentUserId = user?.emailAddresses?.[0]?.emailAddress || ""
   const isAuthed = currentUserId.length > 0
 
   const conversations = useQuery(

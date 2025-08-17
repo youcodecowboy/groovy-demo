@@ -87,4 +87,15 @@ export const getBrandsByFactory = query({
     
     return brands.filter(Boolean)
   },
-}) 
+})
+
+// Get all brands
+export const getAll = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db
+      .query("brands")
+      .order("desc")
+      .collect()
+  },
+})

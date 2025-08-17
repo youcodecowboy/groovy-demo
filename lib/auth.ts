@@ -1,21 +1,35 @@
-import type { User } from "@clerk/nextjs/server"
+// Mock user type for development
+interface User {
+  id: string
+  emailAddresses: { emailAddress: string }[]
+  firstName: string
+  lastName: string
+  fullName: string
+  imageUrl: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Mock user for server-side auth checks
+const mockUser: User = {
+  id: "mock-user-123",
+  emailAddresses: [{ emailAddress: "dev@example.com" }],
+  firstName: "Developer",
+  lastName: "User",
+  fullName: "Developer User",
+  imageUrl: "/placeholder-user.jpg",
+  createdAt: new Date(),
+  updatedAt: new Date(),
+}
+
+export async function currentUser(): Promise<User | null> {
+  // Return mock user for development
+  return mockUser
+}
 
 export function isAdminUser(user: User | null): boolean {
-  if (!user) return false
-
-  // 1) Clerk publicMetadata role flag
-  const role = (user.publicMetadata as Record<string, unknown>)?.role
-  if (role === "admin") return true
-
-  // 2) Admin allowlist by email (comma-separated)
-  const allowlist = process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(",").map(e => e.trim().toLowerCase()).filter(Boolean)
-  const email = user.emailAddresses?.[0]?.emailAddress?.toLowerCase()
-  if (allowlist && allowlist.length > 0 && email) {
-    return allowlist.includes(email)
-  }
-
-  // 3) Fallback: if no allowlist configured, allow access for signed-in users
-  return !allowlist || allowlist.length === 0
+  // For development, always return true
+  return true
 }
 
 

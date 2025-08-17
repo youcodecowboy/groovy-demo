@@ -66,6 +66,8 @@ interface WorkflowAction {
 
 interface ConversationalWorkflowBuilderProps {
   onSave: (workflow: { name: string; description?: string; stages: WorkflowStage[] }) => void
+  initialData?: { name: string; description?: string; stages: WorkflowStage[] } | null
+  isLoading?: boolean
 }
 
 // Action type configurations
@@ -120,11 +122,11 @@ const actionTypes = [
   }
 ]
 
-export function ConversationalWorkflowBuilder({ onSave }: ConversationalWorkflowBuilderProps) {
+export function ConversationalWorkflowBuilder({ onSave, initialData, isLoading = false }: ConversationalWorkflowBuilderProps) {
   const [currentStep, setCurrentStep] = useState<"name" | "stages" | "canvas">("name")
-  const [workflowName, setWorkflowName] = useState("")
-  const [workflowDescription, setWorkflowDescription] = useState("")
-  const [stages, setStages] = useState<WorkflowStage[]>([])
+  const [workflowName, setWorkflowName] = useState(initialData?.name || "")
+  const [workflowDescription, setWorkflowDescription] = useState(initialData?.description || "")
+  const [stages, setStages] = useState<WorkflowStage[]>(initialData?.stages || [])
   const [selectedStageIndex, setSelectedStageIndex] = useState<number | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
@@ -570,9 +572,9 @@ export function ConversationalWorkflowBuilder({ onSave }: ConversationalWorkflow
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button onClick={handleSave} size="lg" disabled={!workflowName.trim() || stages.length === 0}>
+            <Button onClick={handleSave} size="lg" disabled={!workflowName.trim() || stages.length === 0 || isLoading}>
               <Save className="w-4 h-4 mr-2" />
-              Save Workflow
+              {isLoading ? "Saving..." : "Save Workflow"}
             </Button>
           </div>
         </div>
