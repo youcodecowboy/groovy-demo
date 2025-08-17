@@ -1,0 +1,99 @@
+/* Base Animation Utilities */
+:root {
+  --animation-duration-fast: 150ms;
+  --animation-duration-normal: 300ms;
+  --animation-duration-slow: 500ms;
+  --animation-easing: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Item Completion Animation */
+@keyframes complete-item {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+}
+
+.disco-item-complete {
+  animation: complete-item var(--animation-duration-normal) var(--animation-easing);
+}
+
+/* Progress Bar Animation */
+@keyframes progress-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.disco-progress-bar-fill {
+  transform-origin: left;
+  animation: progress-fill var(--animation-duration-slow) var(--animation-easing);
+}
+
+/* Success Scan Animation */
+@keyframes scan-success {
+  0% {
+    background-color: transparent;
+  }
+  30% {
+    background-color: rgba(72, 187, 120, 0.2);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.disco-scan-success {
+  animation: scan-success var(--animation-duration-normal) var(--animation-easing);
+}
+
+/* Milestone Celebration Animation */
+@keyframes celebrate {
+  0% {
+    transform: scale(1) rotate(0);
+  }
+  25% {
+    transform: scale(1.2) rotate(-5deg);
+  }
+  75% {
+    transform: scale(1.2) rotate(5deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+
+.disco-milestone-celebration {
+  animation: celebrate var(--animation-duration-slow) var(--animation-easing);
+}
+
+/* Smooth Transitions */
+.disco-transition-all {
+  transition: all var(--animation-duration-normal) var(--animation-easing);
+}
+
+/* Performance Optimizations */
+.disco-hardware-accelerated {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .disco-animated * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
