@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { X, GripVertical } from "lucide-react"
+import { X, GripVertical, Settings } from "lucide-react"
 
 interface DashboardWidgetProps {
   widget: {
@@ -16,6 +16,7 @@ interface DashboardWidgetProps {
   }
   isEditMode: boolean
   onRemove: () => void
+  onConfigure?: () => void
   children: React.ReactNode
 }
 
@@ -23,6 +24,7 @@ export function DashboardWidget({
   widget, 
   isEditMode, 
   onRemove, 
+  onConfigure,
   children 
 }: DashboardWidgetProps) {
   const [isHovered, setIsHovered] = useState(false)
@@ -55,6 +57,18 @@ export function DashboardWidget({
           <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-600">
             {widget.type}
           </Badge>
+          
+          {onConfigure && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110"
+              onClick={onConfigure}
+            >
+              <Settings className="h-3 w-3" />
+            </Button>
+          )}
+          
           <Button
             size="sm"
             variant="destructive"

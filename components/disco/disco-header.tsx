@@ -9,16 +9,25 @@ interface DiscoHeaderProps {
 }
 
 export function DiscoHeader({ currentTeam }: DiscoHeaderProps) {
-  const [currentTime, setCurrentTime] = useState(new Date())
+  const [currentTime, setCurrentTime] = useState<Date | null>(null)
+  const [isClient, setIsClient] = useState(false)
+
+  // Set client flag on mount to prevent hydration mismatch
+  useEffect(() => {
+    setIsClient(true)
+    setCurrentTime(new Date())
+  }, [])
 
   // Update time every second
   useEffect(() => {
+    if (!isClient) return
+
     const timer = setInterval(() => {
       setCurrentTime(new Date())
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [])
+  }, [isClient])
 
   const getTeamDisplayName = (teamId: string) => {
     const teamNames: Record<string, string> = {
@@ -65,12 +74,12 @@ export function DiscoHeader({ currentTeam }: DiscoHeaderProps) {
               {getTeamDisplayName(currentTeam)}
             </Badge>
             <span className={`text-sm font-mono ${teamColors.text}`}>
-              {currentTime.toLocaleTimeString("en-US", {
+              {isClient && currentTime ? currentTime.toLocaleTimeString("en-US", {
                 hour: "2-digit",
                 minute: "2-digit",
                 second: "2-digit",
                 hour12: false,
-              })}
+              }) : "--:--:--"}
             </span>
           </div>
 

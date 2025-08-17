@@ -1788,11 +1788,17 @@ export const getItemsByTeam = query({
       .filter((q) => q.eq(q.field("status"), "active"))
       .collect()
 
+    // Get all workflows for these items
+    const workflowIds = [...new Set(allItems.map(item => item.workflowId))]
+    const workflows = await Promise.all(
+      workflowIds.map(id => ctx.db.get(id))
+    )
+    const workflowMap = new Map(workflows.map(w => [w?._id, w]).filter(([_, w]) => w))
+
     // Filter items by team's stages and factory
     const teamItems = allItems.filter(item => {
-      // Get the workflow for this item
-      const workflow = ctx.db.get(item.workflowId)
-      if (!workflow) return false
+      const workflow = workflowMap.get(item.workflowId)
+      if (!workflow || !workflow.stages) return false
       
       // Get current stage
       const currentStage = workflow.stages.find((s: any) => s.id === item.currentStageId)
@@ -1810,22 +1816,20 @@ export const getItemsByTeam = query({
     })
 
     // Get workflow details for each item
-    const itemsWithWorkflows = await Promise.all(
-      teamItems.map(async (item) => {
-        const workflow = await ctx.db.get(item.workflowId)
-        const currentStage = workflow?.stages.find((s: any) => s.id === item.currentStageId)
-        const nextStage = workflow?.stages.find((s: any) => s.order === (currentStage?.order || 0) + 1)
-        
-        return {
-          ...item,
-          workflow,
-          currentStage,
-          nextStage,
-          canAdvance: !!nextStage,
-          requiredActions: currentStage?.actions || [],
-        }
-      })
-    )
+    const itemsWithWorkflows = teamItems.map((item) => {
+      const workflow = workflowMap.get(item.workflowId)
+      const currentStage = workflow?.stages?.find((s: any) => s.id === item.currentStageId)
+      const nextStage = workflow?.stages?.find((s: any) => s.order === (currentStage?.order || 0) + 1)
+      
+      return {
+        ...item,
+        workflow,
+        currentStage,
+        nextStage,
+        canAdvance: !!nextStage,
+        requiredActions: currentStage?.actions || [],
+      }
+    })
 
     return itemsWithWorkflows
   },

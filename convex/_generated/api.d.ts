@@ -19,6 +19,7 @@ import type * as customers from "../customers.js";
 import type * as dashboards from "../dashboards.js";
 import type * as factories from "../factories.js";
 import type * as factoryProfiles from "../factoryProfiles.js";
+import type * as item_attributes from "../item-attributes.js";
 import type * as items from "../items.js";
 import type * as location_history from "../location_history.js";
 import type * as locations from "../locations.js";
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   dashboards: typeof dashboards;
   factories: typeof factories;
   factoryProfiles: typeof factoryProfiles;
+  "item-attributes": typeof item_attributes;
   items: typeof items;
   location_history: typeof location_history;
   locations: typeof locations;

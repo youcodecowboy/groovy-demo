@@ -6,17 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
-import {
-    BarChart3,
-    Calendar,
-    Target,
-    Activity,
-    TrendingUp,
-    Users,
-    Package,
-    Clock,
-    Zap
-} from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { WIDGET_TEMPLATES, getWidgetIcon } from '@/lib/dashboard-templates'
+import { Zap } from "lucide-react"
 
 interface AddElementModalProps {
   isOpen: boolean
@@ -24,122 +17,100 @@ interface AddElementModalProps {
   onAdd: (widgetType: string, title: string, config?: any) => void
 }
 
-const widgetTypes = [
-  {
-    type: "metrics",
-    title: "Key Metrics",
-    description: "Display important production metrics",
-    icon: BarChart3,
-    color: "bg-blue-100 text-blue-600"
-  },
-  {
-    type: "capacity",
-    title: "Capacity Tracker",
-    description: "Track production capacity and utilization",
-    icon: Target,
-    color: "bg-green-100 text-green-600"
-  },
-  {
-    type: "calendar",
-    title: "Production Calendar",
-    description: "View production schedule on calendar",
-    icon: Calendar,
-    color: "bg-purple-100 text-purple-600"
-  },
-  {
-    type: "efficiency",
-    title: "Efficiency Analytics",
-    description: "Detailed efficiency and performance metrics",
-    icon: TrendingUp,
-    color: "bg-orange-100 text-orange-600"
-  },
-  {
-    type: "live-feed",
-    title: "Live Production Feed",
-    description: "Real-time production activity feed",
-    icon: Activity,
-    color: "bg-red-100 text-red-600"
-  },
-  {
-    type: "team",
-    title: "Team Overview",
-    description: "Team performance and workload",
-    icon: Users,
-    color: "bg-indigo-100 text-indigo-600"
-  },
-  {
-    type: "inventory",
-    title: "Inventory Status",
-    description: "Current inventory levels and alerts",
-    icon: Package,
-    color: "bg-yellow-100 text-yellow-600"
-  },
-  {
-    type: "timeline",
-    title: "Production Timeline",
-    description: "Timeline view of production progress",
-    icon: Clock,
-    color: "bg-pink-100 text-pink-600"
-  }
+const widgetCategories = [
+  { id: "metrics", name: "Metrics", description: "Key performance indicators and statistics" },
+  { id: "visualization", name: "Visualization", description: "Charts, calendars, and data displays" },
+  { id: "activity", name: "Activity", description: "Real-time feeds and notifications" },
+  { id: "management", name: "Management", description: "Team and operational overviews" }
 ]
 
 export function AddElementModal({ isOpen, onClose, onAdd }: AddElementModalProps) {
   const [selectedType, setSelectedType] = useState<string>("")
   const [customTitle, setCustomTitle] = useState("")
+  const [activeCategory, setActiveCategory] = useState("metrics")
 
   const handleAdd = () => {
     if (!selectedType) return
     
-    const widgetType = widgetTypes.find(w => w.type === selectedType)
-    if (!widgetType) return
+    const widgetTemplate = WIDGET_TEMPLATES.find(w => w.type === selectedType)
+    if (!widgetTemplate) return
 
-    const title = customTitle || widgetType.title
-    onAdd(selectedType, title)
+    const title = customTitle || widgetTemplate.name
+    onAdd(selectedType, title, widgetTemplate.defaultConfig)
     
     // Reset form
     setSelectedType("")
     setCustomTitle("")
   }
 
+  const getWidgetsByCategory = (category: string) => {
+    return WIDGET_TEMPLATES.filter(widget => widget.category === category)
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Add Dashboard Element</DialogTitle>
+          <DialogTitle className="text-2xl font-bold">Add Dashboard Widget</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6">
-          {/* Widget Type Selection */}
+          {/* Widget Category Selection */}
           <div>
-            <Label className="text-base font-semibold mb-4 block">Choose Element Type</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {widgetTypes.map((widget) => {
-                const Icon = widget.icon
-                return (
-                  <Card
-                    key={widget.type}
-                    className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
-                      selectedType === widget.type 
-                        ? "ring-2 ring-blue-500 bg-blue-50" 
-                        : "hover:bg-gray-50"
-                    }`}
-                    onClick={() => setSelectedType(widget.type)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${widget.color}`}>
-                          <Icon className="w-5 h-5" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900">{widget.title}</h3>
-                          <p className="text-sm text-gray-600">{widget.description}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })}
-            </div>
+            <Label className="text-base font-semibold mb-4 block">Choose Widget Category</Label>
+            <Tabs value={activeCategory} onValueChange={setActiveCategory} className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                {widgetCategories.map((category) => (
+                  <TabsTrigger key={category.id} value={category.id}>
+                    {category.name}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              
+              {widgetCategories.map((category) => (
+                <TabsContent key={category.id} value={category.id} className="space-y-4">
+                  <div className="text-sm text-gray-600 mb-4">{category.description}</div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {getWidgetsByCategory(category.id).map((widget) => {
+                      const Icon = getWidgetIcon(widget.icon)
+                      return (
+                        <Card
+                          key={widget.type}
+                          className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
+                            selectedType === widget.type 
+                              ? "ring-2 ring-blue-500 bg-blue-50" 
+                              : "hover:bg-gray-50"
+                          }`}
+                          onClick={() => setSelectedType(widget.type)}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-start gap-3">
+                              <div className={`p-2 rounded-lg bg-${widget.config?.colorScheme || 'blue'}-100`}>
+                                <Icon className={`w-5 h-5 text-${widget.config?.colorScheme || 'blue'}-600`} />
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h3 className="font-semibold text-gray-900">{widget.name}</h3>
+                                  <Badge variant="outline" className="text-xs">
+                                    {widget.category}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-gray-600">{widget.description}</p>
+                                <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                  <span>Refresh: {widget.config?.refreshInterval || 30}s</span>
+                                  <span>Mode: {widget.config?.displayMode || 'card'}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                  </div>
+                </TabsContent>
+              ))}
+            </Tabs>
           </div>
 
           {/* Custom Title */}
@@ -168,7 +139,7 @@ export function AddElementModal({ isOpen, onClose, onAdd }: AddElementModalProps
               className="bg-blue-600 hover:bg-blue-700"
             >
               <Zap className="w-4 h-4 mr-2" />
-              Add Element
+              Add Widget
             </Button>
           </div>
         </div>

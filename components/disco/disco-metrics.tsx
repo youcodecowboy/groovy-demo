@@ -71,7 +71,8 @@ export function DiscoMetrics({ teamId, factoryId }: DiscoMetricsProps) {
     <div className="space-y-4">
       <h2 className="text-xl font-semibold text-gray-900">Team Performance</h2>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Desktop Grid */}
+      <div className="hidden md:grid md:grid-cols-3 gap-4">
         {/* Today */}
         <Card className={`${teamColors.bg} border-0 shadow-sm`}>
           <CardHeader className="pb-3">
@@ -98,17 +99,17 @@ export function DiscoMetrics({ teamId, factoryId }: DiscoMetricsProps) {
             <div className="flex gap-2 pt-2">
               <div className="flex items-center gap-1 text-green-600">
                 <CheckCircle className="w-4 h-4" />
-                <span className="text-sm">{todayMetrics.onTime}</span>
+                <span className="text-xs">{todayMetrics.onTime}</span>
               </div>
               <div className="flex items-center gap-1 text-red-600">
                 <AlertTriangle className="w-4 h-4" />
-                <span className="text-sm">{todayMetrics.late}</span>
+                <span className="text-xs">{todayMetrics.late}</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* 7 Days */}
+        {/* Week */}
         <Card className={`${teamColors.bg} border-0 shadow-sm`}>
           <CardHeader className="pb-3">
             <CardTitle className={`text-lg ${teamColors.text} flex items-center gap-2`}>
@@ -134,17 +135,17 @@ export function DiscoMetrics({ teamId, factoryId }: DiscoMetricsProps) {
             <div className="flex gap-2 pt-2">
               <div className="flex items-center gap-1 text-green-600">
                 <CheckCircle className="w-4 h-4" />
-                <span className="text-sm">{weekMetrics.onTime}</span>
+                <span className="text-xs">{weekMetrics.onTime}</span>
               </div>
               <div className="flex items-center gap-1 text-red-600">
                 <AlertTriangle className="w-4 h-4" />
-                <span className="text-sm">{weekMetrics.late}</span>
+                <span className="text-xs">{weekMetrics.late}</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* 30 Days */}
+        {/* Month */}
         <Card className={`${teamColors.bg} border-0 shadow-sm`}>
           <CardHeader className="pb-3">
             <CardTitle className={`text-lg ${teamColors.text} flex items-center gap-2`}>
@@ -170,15 +171,86 @@ export function DiscoMetrics({ teamId, factoryId }: DiscoMetricsProps) {
             <div className="flex gap-2 pt-2">
               <div className="flex items-center gap-1 text-green-600">
                 <CheckCircle className="w-4 h-4" />
-                <span className="text-sm">{monthMetrics.onTime}</span>
+                <span className="text-xs">{monthMetrics.onTime}</span>
               </div>
               <div className="flex items-center gap-1 text-red-600">
                 <AlertTriangle className="w-4 h-4" />
-                <span className="text-sm">{monthMetrics.late}</span>
+                <span className="text-xs">{monthMetrics.late}</span>
               </div>
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Mobile Horizontal Scroll */}
+      <div className="md:hidden">
+        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+          {/* Today */}
+          <Card className={`${teamColors.bg} border-0 shadow-sm min-w-[200px] flex-shrink-0`}>
+            <CardHeader className="pb-2">
+              <CardTitle className={`text-sm ${teamColors.text} flex items-center gap-2`}>
+                <Clock className="w-4 h-4" />
+                Today
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600">Completed</span>
+                <span className="font-bold text-base">{todayMetrics.completed}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600">Efficiency</span>
+                <Badge variant="outline" className={`${teamColors.accent} ${teamColors.text} border-0 text-xs`}>
+                  {todayMetrics.efficiency}%
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Week */}
+          <Card className={`${teamColors.bg} border-0 shadow-sm min-w-[200px] flex-shrink-0`}>
+            <CardHeader className="pb-2">
+              <CardTitle className={`text-sm ${teamColors.text} flex items-center gap-2`}>
+                <TrendingUp className="w-4 h-4" />
+                7 Days
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600">Completed</span>
+                <span className="font-bold text-base">{weekMetrics.completed}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600">Efficiency</span>
+                <Badge variant="outline" className={`${teamColors.accent} ${teamColors.text} border-0 text-xs`}>
+                  {weekMetrics.efficiency}%
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Month */}
+          <Card className={`${teamColors.bg} border-0 shadow-sm min-w-[200px] flex-shrink-0`}>
+            <CardHeader className="pb-2">
+              <CardTitle className={`text-sm ${teamColors.text} flex items-center gap-2`}>
+                <TrendingUp className="w-4 h-4" />
+                30 Days
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600">Completed</span>
+                <span className="font-bold text-base">{monthMetrics.completed}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600">Efficiency</span>
+                <Badge variant="outline" className={`${teamColors.accent} ${teamColors.text} border-0 text-xs`}>
+                  {monthMetrics.efficiency}%
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )

@@ -5,6 +5,13 @@ import { api } from "@/convex/_generated/api"
 import { useEffect, useState } from "react"
 import { useOrg } from "@/lib/useOrg"
 import { Button } from "@/components/ui/button"
+import { useDashboardLayout } from '@/hooks/use-dashboard-layout'
+import { WidgetConfigModal } from "@/components/admin/widget-config-modal"
+import { DashboardWidget as DashboardWidgetType } from '@/types/dashboard'
+import { useWidgetData } from '@/lib/widget-data-service'
+import { DashboardTestData } from "@/components/app/dashboard-test-data"
+import { WidgetSidebar } from "@/components/app/widget-sidebar"
+import { SortableWidgetGrid } from "@/components/app/sortable-widget-grid"
 import Image from "next/image"
 import {
     Plus,
@@ -23,6 +30,9 @@ import {
     Edit3,
     Check,
     X,
+    Settings,
+    Save,
+    Eye,
 } from "lucide-react"
 
 export default function TenantAppPage() {
@@ -30,6 +40,12 @@ export default function TenantAppPage() {
   const layout = useQuery(api.dashboards.getLayout)
   const setLayout = useMutation(api.dashboards.setLayout)
   const [showWelcome, setShowWelcome] = useState(false)
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(true)
+  const [showBuildSection, setShowBuildSection] = useState(true)
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [showConfigModal, setShowConfigModal] = useState(false)
+  const [configuringWidget, setConfiguringWidget] = useState<DashboardWidgetType | null>(null)
+  const [showWidgetSidebar, setShowWidgetSidebar] = useState(false)
   const createOrg = useMutation(api.tenancy.createOrganization)
   const updateOrgName = useMutation(api.tenancy.updateOrganizationName)
   const { org, setOrg, isLoading } = useOrg()
@@ -39,6 +55,21 @@ export default function TenantAppPage() {
   
   // Get active workflows for onboarding progress
   const activeWorkflows = useQuery(api.workflows.getActive)
+  
+  // Get items for test data component
+  const items = useQuery(api.items.getAll)
+
+  // Dashboard layout management
+  const {
+    widgets,
+    isLoading: dashboardLoading,
+    error: dashboardError,
+    saveLayout,
+    updateWidget,
+    resetToDefault,
+    addWidget,
+    removeWidget,
+  } = useDashboardLayout()
 
   useEffect(() => {
     if (layout && Array.isArray(layout) && layout.length === 0) {
@@ -92,6 +123,58 @@ export default function TenantAppPage() {
   const handleCancelEdit = () => {
     setIsEditingOrg(false)
     setEditOrgName("")
+  }
+
+  const configureWidget = (widgetType: string) => {
+    const existingWidget = widgets.find(w => w.type === widgetType)
+    if (existingWidget) {
+      setConfiguringWidget(existingWidget)
+    } else {
+      // Create a new widget if it doesn't exist
+      const newWidget: DashboardWidgetType = {
+        id: `${widgetType}-${Date.now()}`,
+        type: widgetType,
+        title: widgetType,
+        position: widgets.length,
+        size: "md",
+        config: {},
+        dataSource: undefined
+      }
+      setConfiguringWidget(newWidget)
+    }
+    setShowConfigModal(true)
+  }
+
+  const saveWidgetConfig = (updatedWidget: DashboardWidgetType) => {
+    updateWidget(updatedWidget.id, updatedWidget)
+    setShowConfigModal(false)
+    setConfiguringWidget(null)
+  }
+
+  const saveDashboardLayout = async () => {
+    const success = await saveLayout(widgets)
+    if (success) {
+      setIsEditMode(false)
+    }
+  }
+
+  const handleAddWidget = (newWidget: DashboardWidgetType) => {
+    const widgetWithPosition = { ...newWidget, position: widgets.length }
+    addWidget(widgetWithPosition)
+  }
+
+  const handleRemoveWidget = (widgetId: string) => {
+    removeWidget(widgetId)
+  }
+
+  const handleEditWidget = (widget: DashboardWidgetType) => {
+    if (widget.type === "custom-widget") {
+      setConfiguringWidget(widget)
+      setShowConfigModal(true)
+    } else {
+      // For pre-configured widgets, show a simple edit dialog or just allow removal
+      alert("This widget is pre-configured. Remove it and add a new one to change settings.")
+    }
   }
 
   if (layout === undefined || isLoading) {
@@ -215,22 +298,67 @@ export default function TenantAppPage() {
           <Button className="h-10 rounded-full border border-black bg-white px-5 text-black hover:bg-black hover:text-white">
             <Plus className="mr-2 h-4 w-4" /> New Workflow
           </Button>
+          {isEditMode ? (
+            <>
+              <Button 
+                onClick={saveDashboardLayout}
+                disabled={dashboardLoading}
+                className="h-10 rounded-full border border-black bg-black px-5 text-white hover:bg-white hover:text-black"
+              >
+                <Save className="mr-2 h-4 w-4" />
+                {dashboardLoading ? "Saving..." : "Save Layout"}
+              </Button>
+              <Button 
+                onClick={() => setShowWidgetSidebar(true)}
+                className="h-10 rounded-full border border-black bg-white px-5 text-black hover:bg-black hover:text-white"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Widget
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsEditMode(false)}
+                className="h-10 rounded-full"
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                View Mode
+              </Button>
+            </>
+          ) : (
+            <Button 
+              onClick={() => setIsEditMode(true)}
+              className="h-10 rounded-full border border-black bg-black px-5 text-white hover:bg-white hover:text-black"
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Customize Dashboard
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Welcome / Org creation banner */}
-      <div className="relative overflow-hidden rounded-xl border border-black/10 bg-gradient-to-r from-[#0b0b0b] via-[#15161a] to-black p-8 text-white">
-        {/* subtle grid/texture overlay */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage:
-              "radial-gradient(120% 120% at 0% 50%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 55%), linear-gradient(to right, rgba(255,255,255,0.07) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.07) 1px, transparent 1px)",
-            backgroundSize: "auto, 18px 18px, 18px 18px",
-          }}
-        />
-        <div className="relative flex items-center gap-6">
+      {showWelcomeBanner && (
+        <div className="relative overflow-hidden rounded-xl border border-black/10 bg-gradient-to-r from-[#0b0b0b] via-[#15161a] to-black p-8 text-white">
+          {/* Dismiss button */}
+          <button
+            onClick={() => setShowWelcomeBanner(false)}
+            className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors z-10"
+            title="Dismiss"
+          >
+            <X className="h-5 w-5 text-white/80" />
+          </button>
+          {/* subtle grid/texture overlay */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{
+              backgroundImage:
+                "radial-gradient(120% 120% at 0% 50%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 55%), linear-gradient(to right, rgba(255,255,255,0.07) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.07) 1px, transparent 1px)",
+              backgroundSize: "auto, 18px 18px, 18px 18px",
+            }}
+          />
+          <div className="relative flex items-center gap-6">
           <div className="relative h-20 w-20 md:h-28 md:w-28 lg:h-36 lg:w-36">
             <Image
               src="/groovy%20mascot.png"
@@ -311,18 +439,27 @@ export default function TenantAppPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Onboarding / Builder (moved to top) */}
-      <div id="onboarding" className="rounded-xl border border-black/10 bg-white p-6 shadow-sm">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <Wrench className="h-6 w-6" />
-              <h2 className="text-2xl md:text-3xl font-semibold">Build your operating system</h2>
+      {showBuildSection && (
+        <div id="onboarding" className="rounded-xl border border-black/10 bg-white p-6 shadow-sm">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-2.5">
+                <Wrench className="h-6 w-6" />
+                <h2 className="text-2xl md:text-3xl font-semibold">Build your operating system</h2>
+              </div>
+              <p className="mt-1.5 text-base text-gray-600 italic">Follow the microsteps to get set up.</p>
             </div>
-            <p className="mt-1.5 text-base text-gray-600 italic">Follow the microsteps to get set up.</p>
+            <button
+              onClick={() => setShowBuildSection(false)}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              title="Dismiss"
+            >
+              <X className="h-5 w-5 text-gray-600" />
+            </button>
           </div>
-        </div>
         <div className="mt-5 border-t border-black/10" />
         {/* Progress bar - segmented and linked to steps */}
         <div className="mt-5">
@@ -400,74 +537,99 @@ export default function TenantAppPage() {
           </Button>
         </div>
       </div>
+      )}
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        {[{
-          label: "Active Items",
-          Icon: Package,
-        }, {
-          label: "On Time",
-          Icon: Clock,
-        }, {
-          label: "Open Tasks",
-          Icon: CheckSquare,
-        }].map(({ label, Icon }) => (
-          <div key={label} className="rounded-xl border border-black/10 bg-white shadow-sm">
-            <div className="flex items-center justify-between p-5">
-              <div className="flex items-center gap-3">
-                <Icon className="h-6 w-6" />
-                <div className="text-lg font-semibold">{label}</div>
+      {/* Dashboard Widgets */}
+      {widgets.length === 0 ? (
+        <div className="col-span-full text-center py-12">
+          <div className="max-w-md mx-auto">
+            <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+            <h3 className="text-lg font-semibold mb-2">No widgets added yet</h3>
+            <p className="text-gray-600 mb-4">Add widgets to start building your dashboard</p>
+            {isEditMode ? (
+              <Button
+                onClick={() => setShowWidgetSidebar(true)}
+                className="rounded-full border border-black bg-black px-6 text-white hover:bg-white hover:text-black"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Your First Widget
+              </Button>
+            ) : (
+              <Button
+                onClick={() => setIsEditMode(true)}
+                className="rounded-full border border-black bg-black px-6 text-white hover:bg-white hover:text-black"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Customize Dashboard
+              </Button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Instruction banner for first time users */}
+          {isEditMode && widgets.length === 1 && (
+            <div className="col-span-full">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <p className="text-sm text-blue-800">
+                    <strong>Tip:</strong> Drag widgets to reorder them, or click "Add Widget" to add more. 
+                    Each widget shows real data from your system.
+                  </p>
+                </div>
               </div>
-              <Button className="h-9 rounded-full border border-black bg-white px-4 text-black hover:bg-black hover:text-white">Configure</Button>
             </div>
-            <div className="border-t border-black/10" />
-            <div className="p-5">
-              <div className="h-10 rounded-md border border-dashed border-black/20 bg-gray-50" />
-              <div className="mt-2 text-sm text-gray-600 italic">No data yet</div>
-            </div>
-          </div>
-        ))}
-      </div>
+          )}
+          
+          <SortableWidgetGrid
+            widgets={widgets}
+            isEditMode={isEditMode}
+            onReorder={async (updatedWidgets) => {
+              // Update the widgets in the layout
+              const reorderedWidgets = updatedWidgets.map((widget, index) => ({
+                ...widget,
+                position: index
+              }))
+              
+              // Update local state immediately for responsive UI
+              reorderedWidgets.forEach((widget, index) => {
+                updateWidget(widget.id, { ...widget, position: index })
+              })
+              
+              // Save to database
+              await saveLayout(reorderedWidgets)
+            }}
+            onRemove={handleRemoveWidget}
+            onEdit={handleEditWidget}
+          />
+        </>
+      )}
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Activity / Table */}
-        <div className="lg:col-span-2 rounded-xl border border-black/10 bg-white shadow-sm">
-          <div className="flex items-center justify-between p-5">
-            <div className="flex items-center gap-2">
-              <List className="h-5 w-5" />
-              <h2 className="text-xl font-semibold">Recent Activity</h2>
-            </div>
-            <Button className="h-10 rounded-full border border-black bg-white px-5 text-black hover:bg-black hover:text-white">Configure</Button>
-          </div>
-          <div className="border-t border-black/10" />
-          <div className="px-5 py-2 text-xs text-gray-600 italic">Low fidelity view</div>
-          <div className="flex h-48 items-center justify-center p-5">
-            <div className="grid w-full grid-rows-3 gap-3">
-              <div className="h-10 rounded-md border border-dashed border-black/20 bg-gray-50" />
-              <div className="h-10 rounded-md border border-dashed border-black/20 bg-gray-50" />
-              <div className="h-10 rounded-md border border-dashed border-black/20 bg-gray-50" />
-            </div>
-          </div>
-        </div>
+      {/* Test Data Component - Only show if no data */}
+      {(!items || items.length === 0) && (
+        <DashboardTestData />
+      )}
 
-        {/* Snapshot / Chart */}
-        <div className="rounded-xl border border-black/10 bg-white shadow-sm">
-          <div className="flex items-center justify-between p-5">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              <h2 className="text-xl font-semibold">Today’s Snapshot</h2>
-            </div>
-            <Button className="h-10 rounded-full border border-black bg-white px-5 text-black hover:bg-black hover:text-white">Configure</Button>
-          </div>
-          <div className="border-t border-black/10" />
-          <div className="m-5 flex h-56 items-center justify-center rounded-md border border-dashed border-black/30 bg-gray-50 text-sm text-gray-500 italic">
-            Charts will appear here once configured
-          </div>
-        </div>
-      </div>
+      {/* Widget Sidebar */}
+      <WidgetSidebar
+        isOpen={showWidgetSidebar}
+        onClose={() => setShowWidgetSidebar(false)}
+        onAddWidget={handleAddWidget}
+      />
 
+      {/* Widget Configuration Modal - Only for custom widgets */}
+      {showConfigModal && configuringWidget && (
+        <WidgetConfigModal
+          isOpen={showConfigModal}
+          onClose={() => {
+            setShowConfigModal(false)
+            setConfiguringWidget(null)
+          }}
+          onSave={saveWidgetConfig}
+          widget={configuringWidget}
+        />
+      )}
     </div>
   )
 }

@@ -25,81 +25,8 @@ export default function DiscoFloorPage() {
       // Parse the scanned data - expect format like "item:ITEM-001"
       const itemId = data.replace("item:", "")
       
-      // Find the item by itemId
-      const allItems = await fetch("/api/items?teamId=" + selectedTeam).then(r => r.json())
-      const item = allItems.find((i: any) => i.itemId === itemId)
-      
-      if (!item) {
-        toast({
-          title: "Item Not Found",
-          description: `Item ${itemId} not found in ${selectedTeam} team queue`,
-          variant: "destructive",
-        })
-        return
-      }
-
-      // Check if item has required actions
-      const requiredActions = item.requiredActions?.filter((a: any) => a.required) || []
-      
-      if (requiredActions.length > 0) {
-        // For now, auto-complete with basic scan action
-        // In a real implementation, you'd show a modal to collect required data
-        const completedActions = requiredActions.map((action: any) => ({
-          id: action.id,
-          type: action.type,
-          label: action.label,
-          data: action.type === "scan" ? { scannedValue: itemId } : 
-                action.type === "approval" ? { approved: true } :
-                action.type === "measurement" ? { value: 10 } : // Default value
-                undefined
-        }))
-
-        const result = await advanceItem({
-          itemId: item._id,
-          userId: "disco-floor",
-          completedActions,
-          notes: "Advanced via QR scan"
-        })
-
-        if (result.status === "completed") {
-          toast({
-            title: "✅ Item Completed",
-            description: "Item has been completed successfully",
-          })
-        } else {
-          toast({
-            title: "✅ Item Advanced",
-            description: `Advanced to ${result.nextStage?.name}`,
-          })
-        }
-      } else {
-        // No required actions, just advance with basic scan
-        const completedActions = [{
-          id: "basic-scan",
-          type: "scan" as const,
-          label: "QR Code Scan",
-          data: { scannedValue: itemId }
-        }]
-
-        const result = await advanceItem({
-          itemId: item._id,
-          userId: "disco-floor",
-          completedActions,
-          notes: "Advanced via QR scan"
-        })
-
-        if (result.status === "completed") {
-          toast({
-            title: "✅ Item Completed",
-            description: "Item has been completed successfully",
-          })
-        } else {
-          toast({
-            title: "✅ Item Advanced",
-            description: `Advanced to ${result.nextStage?.name}`,
-          })
-        }
-      }
+      // Navigate to the item detail page
+      router.push(`/disco/items/${itemId}`)
       
     } catch (error: any) {
       toast({

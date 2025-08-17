@@ -91,7 +91,80 @@ export default defineSchema({
     brandId: v.optional(v.id("brands")), // Link items to brands
     factoryId: v.optional(v.id("factories")), // Link items to factories
     purchaseOrderId: v.optional(v.id("purchaseOrders")), // Link items to POs
-  }).index("by_user", ["assignedTo"]).index("by_location", ["currentLocationId"]).index("by_brand", ["brandId"]).index("by_factory", ["factoryId"]).index("by_po", ["purchaseOrderId"]),
+    // Enhanced item management
+    itemTypeId: v.optional(v.id("itemTypes")), // Link to item type
+    attributes: v.optional(v.array(v.object({
+      attributeId: v.string(),
+      value: v.any(),
+      lastUpdated: v.number(),
+      updatedBy: v.string(),
+    }))),
+  }).index("by_user", ["assignedTo"]).index("by_location", ["currentLocationId"]).index("by_brand", ["brandId"]).index("by_factory", ["factoryId"]).index("by_po", ["purchaseOrderId"]).index("by_type", ["itemTypeId"]),
+
+  // Item attributes table - defines custom attributes for items
+  itemAttributes: defineTable({
+    orgId: v.optional(v.id("organizations")),
+    name: v.string(),
+    type: v.union(v.literal("text"), v.literal("number"), v.literal("select"), v.literal("date"), v.literal("boolean"), v.literal("url"), v.literal("email")),
+    description: v.optional(v.string()),
+    required: v.boolean(),
+    defaultValue: v.optional(v.any()),
+    validation: v.optional(v.object({
+      minLength: v.optional(v.number()),
+      maxLength: v.optional(v.number()),
+      minValue: v.optional(v.number()),
+      maxValue: v.optional(v.number()),
+      pattern: v.optional(v.string()),
+      customValidation: v.optional(v.string()),
+    })),
+    options: v.optional(v.array(v.string())), // For select type
+    group: v.optional(v.string()),
+    order: v.number(),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    createdBy: v.string(),
+  }).index("by_org", ["orgId"]).index("by_group", ["group"]),
+
+  // Item types table - defines item types with their attributes
+  itemTypes: defineTable({
+    orgId: v.optional(v.id("organizations")),
+    name: v.string(),
+    description: v.optional(v.string()),
+    attributes: v.array(v.string()), // Array of attribute IDs
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    createdBy: v.string(),
+  }).index("by_org", ["orgId"]),
+
+  // Attribute templates table - pre-defined attribute sets
+  attributeTemplates: defineTable({
+    orgId: v.optional(v.id("organizations")),
+    name: v.string(),
+    description: v.optional(v.string()),
+    attributes: v.array(v.string()), // Array of attribute IDs
+    category: v.union(v.literal("production"), v.literal("quality"), v.literal("logistics"), v.literal("custom")),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    createdBy: v.string(),
+  }).index("by_org", ["orgId"]).index("by_category", ["category"]),
+
+  // Bulk operations table - tracks bulk item operations
+  bulkOperations: defineTable({
+    orgId: v.optional(v.id("organizations")),
+    type: v.union(v.literal("create"), v.literal("update"), v.literal("delete"), v.literal("export")),
+    status: v.union(v.literal("pending"), v.literal("processing"), v.literal("completed"), v.literal("failed")),
+    items: v.array(v.string()), // Array of item IDs
+    template: v.optional(v.id("attributeTemplates")),
+    filters: v.optional(v.any()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    error: v.optional(v.string()),
+    createdBy: v.string(),
+  }).index("by_org", ["orgId"]).index("by_status", ["status"]),
 
   // Completed items table - stores items that have finished processing
   completedItems: defineTable({
