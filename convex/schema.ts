@@ -82,6 +82,9 @@ export default defineSchema({
     completedAt: v.optional(v.number()), // Completion timestamp for backward compatibility
     assignedTo: v.optional(v.string()),
     qrCode: v.optional(v.string()), // QR code data for scanning
+    qrPrinted: v.optional(v.boolean()), // Whether QR code has been printed
+    qrPrintedAt: v.optional(v.number()), // When QR code was printed
+    qrPrintedBy: v.optional(v.string()), // Who printed the QR code
     currentLocationId: v.optional(v.id("locations")), // Current location of the item
     isDefective: v.optional(v.boolean()), // Flag for defective items
     defectNotes: v.optional(v.string()), // Notes about the defect

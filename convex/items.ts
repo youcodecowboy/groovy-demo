@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
 
 // Update item location
 export const updateLocation = mutation({
@@ -2046,3 +2047,211 @@ export const getTeamMetrics = query({
     }
   },
 })
+
+// Generate QR codes for multiple items
+export const generateQRCodesForItems = mutation({
+  args: {
+    itemIds: v.array(v.string()),
+  },
+  handler: async (ctx, { itemIds }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const results = [];
+    
+    for (const itemId of itemIds) {
+      try {
+        const item = await ctx.db.get(itemId as Id<"items">);
+        if (!item) {
+          results.push({ itemId, success: false, error: "Item not found" });
+          continue;
+        }
+
+        // Generate unique QR code data
+        const timestamp = Date.now();
+        const randomSuffix = Math.random().toString(36).substr(2, 9);
+        const qrData = `${item.itemId}-${timestamp}-${randomSuffix}`;
+
+        // Update the item with the new QR code
+        await ctx.db.patch(itemId as Id<"items">, {
+          qrCode: qrData,
+          updatedAt: timestamp,
+        });
+
+        results.push({ itemId, success: true, qrData });
+      } catch (error) {
+        results.push({ itemId, success: false, error: error.message });
+      }
+    }
+
+    return results;
+  },
+});
+
+// Mark items as printed
+export const markItemsAsPrinted = mutation({
+  args: {
+    itemIds: v.array(v.string()),
+    printedBy: v.string(),
+  },
+  handler: async (ctx, { itemIds, printedBy }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const timestamp = Date.now();
+    const results = [];
+    
+    for (const itemId of itemIds) {
+      try {
+        const item = await ctx.db.get(itemId as Id<"items">);
+        if (!item) {
+          results.push({ itemId, success: false, error: "Item not found" });
+          continue;
+        }
+
+        if (!item.qrCode) {
+          results.push({ itemId, success: false, error: "Item has no QR code" });
+          continue;
+        }
+
+        // Update the item as printed
+        await ctx.db.patch(itemId as Id<"items">, {
+          qrPrinted: true,
+          qrPrintedAt: timestamp,
+          qrPrintedBy: printedBy,
+          updatedAt: timestamp,
+        });
+
+        results.push({ itemId, success: true });
+      } catch (error) {
+        results.push({ itemId, success: false, error: error.message });
+      }
+    }
+
+    return results;
+  },
+});
+
+// Get items grouped by variant for QR generation
+export const getItemsByVariant = query({
+  args: {
+    purchaseOrderId: v.optional(v.id("purchaseOrders")),
+    brandId: v.optional(v.id("brands")),
+    factoryId: v.optional(v.id("factories")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    let itemsQuery = ctx.db.query("items");
+    
+    // Apply filters
+    if (args.purchaseOrderId) {
+      itemsQuery = itemsQuery.withIndex("by_po", (q) => q.eq("purchaseOrderId", args.purchaseOrderId));
+    }
+    if (args.brandId) {
+      itemsQuery = itemsQuery.withIndex("by_brand", (q) => q.eq("brandId", args.brandId));
+    }
+    if (args.factoryId) {
+      itemsQuery = itemsQuery.withIndex("by_factory", (q) => q.eq("factoryId", args.factoryId));
+    }
+
+    const items = await itemsQuery.collect();
+
+    // Group items by variant (SKU + Size + Color)
+    const variantGroups = new Map();
+    
+    items.forEach(item => {
+      const metadata = item.metadata || {};
+      const sku = metadata.sku || "Unknown SKU";
+      const size = metadata.size || "Unknown Size";
+      const color = metadata.color || "Unknown Color";
+      const style = metadata.style || "Unknown Style";
+      const brand = metadata.brand || "Unknown Brand";
+      
+      const key = `${sku}-${size}-${color}`;
+      
+      if (!variantGroups.has(key)) {
+        variantGroups.set(key, {
+          key,
+          sku,
+          size,
+          color,
+          style,
+          brand,
+          items: [],
+          totalCount: 0,
+          printedCount: 0,
+          unprintedCount: 0,
+          qrGeneratedCount: 0,
+        });
+      }
+      
+      const group = variantGroups.get(key);
+      group.items.push(item);
+      group.totalCount++;
+      
+      if (item.qrPrinted) {
+        group.printedCount++;
+      } else {
+        group.unprintedCount++;
+      }
+      
+      if (item.qrCode) {
+        group.qrGeneratedCount++;
+      }
+    });
+    
+    return Array.from(variantGroups.values());
+  },
+});
+
+// Get QR printing statistics
+export const getQRPrintingStats = query({
+  args: {
+    purchaseOrderId: v.optional(v.id("purchaseOrders")),
+    brandId: v.optional(v.id("brands")),
+    factoryId: v.optional(v.id("factories")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    let itemsQuery = ctx.db.query("items");
+    
+    // Apply filters
+    if (args.purchaseOrderId) {
+      itemsQuery = itemsQuery.withIndex("by_po", (q) => q.eq("purchaseOrderId", args.purchaseOrderId));
+    }
+    if (args.brandId) {
+      itemsQuery = itemsQuery.withIndex("by_brand", (q) => q.eq("brandId", args.brandId));
+    }
+    if (args.factoryId) {
+      itemsQuery = itemsQuery.withIndex("by_factory", (q) => q.eq("factoryId", args.factoryId));
+    }
+
+    const items = await itemsQuery.collect();
+
+    const stats = {
+      totalItems: items.length,
+      itemsWithQR: items.filter(item => item.qrCode).length,
+      itemsPrinted: items.filter(item => item.qrPrinted).length,
+      itemsNeedingQR: items.filter(item => !item.qrCode).length,
+      itemsNeedingPrint: items.filter(item => item.qrCode && !item.qrPrinted).length,
+      variantCount: new Set(items.map(item => {
+        const metadata = item.metadata || {};
+        return `${metadata.sku || "Unknown"}-${metadata.size || "Unknown"}-${metadata.color || "Unknown"}`;
+      })).size,
+    };
+
+    return stats;
+  },
+});

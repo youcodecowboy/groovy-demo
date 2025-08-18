@@ -93,18 +93,38 @@ export default function OrdersHeader({
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="inbox">Inbox</TabsTrigger>
-          <TabsTrigger value="active">Active</TabsTrigger>
-          <TabsTrigger value="all">All Orders</TabsTrigger>
-          <TabsTrigger value="import">Import</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 bg-blue-50 p-1 border border-blue-200">
+          <TabsTrigger 
+            value="inbox"
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-blue-700 data-[state=inactive]:hover:bg-blue-100 data-[state=inactive]:hover:text-blue-800 font-medium"
+          >
+            Inbox
+          </TabsTrigger>
+          <TabsTrigger 
+            value="active"
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-blue-700 data-[state=inactive]:hover:bg-blue-100 data-[state=inactive]:hover:text-blue-800 font-medium"
+          >
+            Active
+          </TabsTrigger>
+          <TabsTrigger 
+            value="all"
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-blue-700 data-[state=inactive]:hover:bg-blue-100 data-[state=inactive]:hover:text-blue-800 font-medium"
+          >
+            All Orders
+          </TabsTrigger>
+          <TabsTrigger 
+            value="import"
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-blue-700 data-[state=inactive]:hover:bg-blue-100 data-[state=inactive]:hover:text-blue-800 font-medium"
+          >
+            Import
+          </TabsTrigger>
         </TabsList>
       </Tabs>
 
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
             {/* Search */}
             <div className="lg:col-span-2">
               <label className="text-sm font-medium text-gray-700">Search</label>
@@ -173,24 +193,24 @@ export default function OrdersHeader({
                 </SelectContent>
               </Select>
             </div>
+          </div>
 
-            {/* Date Range */}
-            <div>
-              <label className="text-sm font-medium text-gray-700">Date Range</label>
-              <div className="mt-1 flex gap-2">
-                <Input
-                  type="date"
-                  value={dateRange.from}
-                  onChange={(e) => onDateRangeChange({ ...dateRange, from: e.target.value })}
-                  className="text-sm"
-                />
-                <Input
-                  type="date"
-                  value={dateRange.to}
-                  onChange={(e) => onDateRangeChange({ ...dateRange, to: e.target.value })}
-                  className="text-sm"
-                />
-              </div>
+          {/* Date Range - Separate row to prevent overflow */}
+          <div className="mt-4">
+            <label className="text-sm font-medium text-gray-700">Date Range</label>
+            <div className="mt-1 flex gap-2 max-w-md">
+              <Input
+                type="date"
+                value={dateRange.from}
+                onChange={(e) => onDateRangeChange({ ...dateRange, from: e.target.value })}
+                className="text-sm flex-1"
+              />
+              <Input
+                type="date"
+                value={dateRange.to}
+                onChange={(e) => onDateRangeChange({ ...dateRange, to: e.target.value })}
+                className="text-sm flex-1"
+              />
             </div>
           </div>
 

@@ -95,33 +95,33 @@ export default function OrderDetailsHeader({ order, brandName, factoryName }: Or
   const statusConfig = getStatusConfig(order.status)
 
   return (
-    <div className="sticky top-0 z-10 bg-white border-b border-gray-200 py-4">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div className="sticky top-0 z-10 bg-white border-b border-gray-200 py-6 px-6">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
         {/* Left Section */}
-        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{order.poNumber}</h1>
-            <div className="flex items-center gap-4 mt-1">
-              <div className="flex items-center gap-1 text-sm text-gray-600">
-                <Building2 className="w-4 h-4" />
-                {brandName}
+        <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+          <div className="space-y-3">
+            <h1 className="text-3xl font-bold text-gray-900">{order.poNumber}</h1>
+            <div className="flex items-center gap-8">
+              <div className="flex items-center gap-3 text-sm text-gray-600">
+                <Building2 className="w-5 h-5" />
+                <span className="font-semibold text-gray-700">{brandName}</span>
               </div>
-              <div className="flex items-center gap-1 text-sm text-gray-600">
-                <Package className="w-4 h-4" />
-                {factoryName}
+              <div className="flex items-center gap-3 text-sm text-gray-600">
+                <Package className="w-5 h-5" />
+                <span className="font-semibold text-gray-700">{factoryName}</span>
               </div>
             </div>
           </div>
           
-          <Badge className={statusConfig.color}>
+          <Badge className={`${statusConfig.color} text-sm font-semibold px-4 py-2`}>
             {statusConfig.label}
           </Badge>
         </div>
 
         {/* Center Section - Progress and Lead Time */}
-        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-6">
           {order.progress && (
-            <div className="min-w-[200px]">
+            <div className="min-w-[250px]">
               <ProgressBar
                 completed={order.progress.completedItems}
                 total={order.progress.totalItems}
@@ -142,7 +142,7 @@ export default function OrderDetailsHeader({ order, brandName, factoryName }: Or
         </div>
 
         {/* Right Section - Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Button
             size="sm"
             variant="outline"

@@ -166,16 +166,16 @@ export default function OrdersTable({ orders, brands, factories }: OrdersTablePr
             
             return (
               <TableRow key={order._id}>
-                <TableCell>
-                  <div className="space-y-1">
-                    <div className="font-medium">{order.poNumber}</div>
-                    <div className="flex items-center gap-1 text-sm text-gray-600">
+                <TableCell className="pl-6">
+                  <div className="space-y-2">
+                    <div className="font-medium text-gray-900">{order.poNumber}</div>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Building2 className="w-3 h-3" />
-                      {brandName}
+                      <span>{brandName}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-sm text-gray-600">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Package className="w-3 h-3" />
-                      {factoryName}
+                      <span>{factoryName}</span>
                     </div>
                   </div>
                 </TableCell>

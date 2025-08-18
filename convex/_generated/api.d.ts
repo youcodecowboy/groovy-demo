@@ -29,6 +29,7 @@ import type * as notifications from "../notifications.js";
 import type * as purchaseOrders from "../purchaseOrders.js";
 import type * as scans from "../scans.js";
 import type * as seed from "../seed.js";
+import type * as starwars_seed from "../starwars_seed.js";
 import type * as tasks from "../tasks.js";
 import type * as teams from "../teams.js";
 import type * as tenancy from "../tenancy.js";
@@ -61,6 +62,7 @@ declare const fullApi: ApiFromModules<{
   purchaseOrders: typeof purchaseOrders;
   scans: typeof scans;
   seed: typeof seed;
+  starwars_seed: typeof starwars_seed;
   tasks: typeof tasks;
   teams: typeof teams;
   tenancy: typeof tenancy;

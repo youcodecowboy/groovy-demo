@@ -65,14 +65,49 @@ export default function OrderDetailsPage() {
         {/* Left Column - Main Content */}
         <div className="lg:col-span-2">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-7">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="items">Items</TabsTrigger>
-              <TabsTrigger value="materials">Materials</TabsTrigger>
-              <TabsTrigger value="financials">Financials</TabsTrigger>
-              <TabsTrigger value="qa">QA & Defects</TabsTrigger>
-              <TabsTrigger value="messaging">Messaging</TabsTrigger>
-              <TabsTrigger value="timeline">Timeline</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-7 bg-blue-50 p-1 border border-blue-200">
+              <TabsTrigger 
+                value="overview"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-blue-700 data-[state=inactive]:hover:bg-blue-100 data-[state=inactive]:hover:text-blue-800 text-xs font-medium"
+              >
+                Overview
+              </TabsTrigger>
+              <TabsTrigger 
+                value="items"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-blue-700 data-[state=inactive]:hover:bg-blue-100 data-[state=inactive]:hover:text-blue-800 text-xs font-medium"
+              >
+                Items
+              </TabsTrigger>
+              <TabsTrigger 
+                value="materials"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-blue-700 data-[state=inactive]:hover:bg-blue-100 data-[state=inactive]:hover:text-blue-800 text-xs font-medium"
+              >
+                Materials
+              </TabsTrigger>
+              <TabsTrigger 
+                value="financials"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-blue-700 data-[state=inactive]:hover:bg-blue-100 data-[state=inactive]:hover:text-blue-800 text-xs font-medium"
+              >
+                Financials
+              </TabsTrigger>
+              <TabsTrigger 
+                value="qa"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-blue-700 data-[state=inactive]:hover:bg-blue-100 data-[state=inactive]:hover:text-blue-800 text-xs font-medium"
+              >
+                QA & Defects
+              </TabsTrigger>
+              <TabsTrigger 
+                value="messaging"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-blue-700 data-[state=inactive]:hover:bg-blue-100 data-[state=inactive]:hover:text-blue-800 text-xs font-medium"
+              >
+                Messaging
+              </TabsTrigger>
+              <TabsTrigger 
+                value="timeline"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=inactive]:text-blue-700 data-[state=inactive]:hover:bg-blue-100 data-[state=inactive]:hover:text-blue-800 text-xs font-medium"
+              >
+                Timeline
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="mt-6">
