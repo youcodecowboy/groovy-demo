@@ -57,6 +57,8 @@ export default function MaterialOverview({
             value={inventorySnapshot.onHand}
             subtitle={`${material.defaultUnit} available`}
             icon={Package}
+            showAsQuantity={true}
+            unit={material.defaultUnit}
             trend={{
               value: 5.2,
               isPositive: true,

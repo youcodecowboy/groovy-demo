@@ -4,6 +4,17 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import MaterialsHeader from '@/components/materials/materials-header'
 import MaterialsTable from '@/components/materials/materials-table'
+import ValueCard from '@/components/materials/value-card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { 
+  Package, 
+  DollarSign, 
+  TrendingUp, 
+  AlertTriangle,
+  ShoppingCart,
+  Clock
+} from 'lucide-react'
 import { dataAdapter } from '@/lib/dataAdapter'
 import { useToast } from '@/hooks/use-toast'
 import { 
@@ -11,7 +22,8 @@ import {
   type MaterialFilters, 
   type MaterialListView,
   type InventorySnapshot,
-  isLowStock
+  isLowStock,
+  formatCurrency
 } from '@/types/materials'
 
 export default function MaterialsPage() {
@@ -22,6 +34,7 @@ export default function MaterialsPage() {
   const [inventorySnapshots, setInventorySnapshots] = useState<Record<string, InventorySnapshot>>({})
   const [loading, setLoading] = useState(true)
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([])
+  const [pendingOrders, setPendingOrders] = useState<any[]>([])
   
   const [filters, setFilters] = useState<MaterialFilters>({})
   const [view, setView] = useState<MaterialListView>({
@@ -55,6 +68,14 @@ export default function MaterialsPage() {
         }
         setInventorySnapshots(snapshots)
         
+        // Load pending orders
+        try {
+          const pendingOrdersData = await dataAdapter.getPendingMaterialOrders()
+          setPendingOrders(pendingOrdersData)
+        } catch (error) {
+          console.error('Failed to load pending orders:', error)
+        }
+        
       } catch (error) {
         console.error('Failed to load materials:', error)
         toast({
@@ -76,6 +97,12 @@ export default function MaterialsPage() {
     const snapshot = inventorySnapshots[material.id]
     return isLowStock(material, snapshot?.onHand || 0)
   }).length
+  
+  // Calculate overview metrics
+  const totalValue = Object.values(inventorySnapshots).reduce((sum, snapshot) => sum + snapshot.value, 0)
+  const totalOnOrder = pendingOrders.reduce((sum, order) => sum + (order.totalValue || 0), 0)
+  const avgMovementTrend = 8.3 // Mock trend - would calculate from recent movements
+  const forecastValue = totalValue * (1 + avgMovementTrend / 100) // Simple forecast
 
   // Handlers
   const handleNewMaterial = () => {
