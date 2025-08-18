@@ -1,383 +1,443 @@
 "use client"
 
-import React from "react"
+import React, { useState, useEffect } from "react"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { use } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { 
-  ArrowLeft, 
-  Package, 
-  Workflow, 
-  MapPin, 
-  Clock, 
-  Calendar,
-  Tag,
-  QrCode,
-  User,
-  AlertCircle,
-  CheckCircle,
-  Play,
-  Pause,
-  Edit3,
-  History,
-  BarChart3
-} from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Label } from "@/components/ui/label"
+
+// Mission Control Components
+import {
+  ItemHeader,
+  EventFeed,
+  NotesPanel,
+  LocationHistory,
+  QRCard,
+  MetaTable,
+  OrderSnapshot,
+  StageTimeline,
+  WorkflowMiniMap,
+  CostsPanel,
+  MessagingThread,
+  AttachmentsPanel,
+  AuditLog
+} from "@/components/items"
+
+// Mock data generators
+const generateMockEvents = (itemId: string) => [
+  {
+    id: "1",
+    type: 'scan' as const,
+    timestamp: Date.now() - 1000 * 60 * 30, // 30 minutes ago
+    summary: "Item scanned at Quality Check station",
+    details: "QR code scanned successfully. All quality parameters within acceptable range.",
+    user: "qc@demo",
+    stage: "Quality Check"
+  },
+  {
+    id: "2",
+    type: 'transition' as const,
+    timestamp: Date.now() - 1000 * 60 * 60 * 2, // 2 hours ago
+    summary: "Advanced from Cutting to Assembly",
+    details: "Item moved to assembly stage after successful cutting operations.",
+    user: "floor@demo",
+    stage: "Assembly"
+  },
+  {
+    id: "3",
+    type: 'note' as const,
+    timestamp: Date.now() - 1000 * 60 * 60 * 4, // 4 hours ago
+    summary: "Special handling required",
+    details: "Customer requested extra care during assembly. Use premium materials.",
+    user: "admin@demo",
+    stage: "Assembly"
+  }
+]
+
+const generateMockNotes = () => [
+  {
+    id: "1",
+    text: "Item needs special attention during quality check",
+    author: "floor@demo",
+    timestamp: Date.now() - 2 * 60 * 60 * 1000,
+    type: 'alert' as const
+  },
+  {
+    id: "2",
+    text: "Fabric looks good, ready for next stage",
+    author: "admin@demo",
+    timestamp: Date.now() - 4 * 60 * 60 * 1000,
+    type: 'note' as const
+  }
+]
+
+const generateMockLocationHistory = () => [
+  {
+    id: "1",
+    name: "Cutting Station A",
+    type: 'production' as const,
+    timestamp: Date.now() - 1000 * 60 * 60 * 6,
+    duration: 1000 * 60 * 60 * 2 // 2 hours
+  },
+  {
+    id: "2",
+    name: "Assembly Line 3",
+    type: 'production' as const,
+    timestamp: Date.now() - 1000 * 60 * 60 * 4,
+    duration: 1000 * 60 * 60 * 1.5 // 1.5 hours
+  },
+  {
+    id: "3",
+    name: "Quality Check Station",
+    type: 'production' as const,
+    timestamp: Date.now() - 1000 * 60 * 30,
+    duration: 1000 * 60 * 30 // 30 minutes
+  }
+]
+
+const generateMockMessages = () => [
+  {
+    id: "1",
+    text: "Item is ready for final inspection",
+    author: "qc@demo",
+    timestamp: Date.now() - 1000 * 60 * 30,
+    type: 'user' as const,
+    recipients: ['admin@demo']
+  },
+  {
+    id: "2",
+    text: "System: Item moved to Quality Check stage",
+    author: "system@demo",
+    timestamp: Date.now() - 1000 * 60 * 60,
+    type: 'system' as const
+  }
+]
+
+const generateMockAttachments = () => [
+  {
+    id: "1",
+    name: "quality_check_photo.jpg",
+    type: 'image' as const,
+    size: 1024 * 1024 * 2.5, // 2.5MB
+    uploadedBy: "qc@demo",
+    uploadedAt: Date.now() - 1000 * 60 * 30
+  },
+  {
+    id: "2",
+    name: "assembly_instructions.pdf",
+    type: 'pdf' as const,
+    size: 1024 * 512, // 512KB
+    uploadedBy: "admin@demo",
+    uploadedAt: Date.now() - 1000 * 60 * 60 * 2
+  }
+]
+
+const generateMockAuditEntries = (itemId: string) => [
+  {
+    id: "1",
+    timestamp: Date.now() - 1000 * 60 * 30,
+    user: "qc@demo",
+    action: "Quality check completed",
+    type: 'stage' as const,
+    details: "Item passed all quality parameters",
+    metadata: { stage: "Quality Check", result: "Pass" }
+  },
+  {
+    id: "2",
+    timestamp: Date.now() - 1000 * 60 * 60,
+    user: "admin@demo",
+    action: "Labor rate updated",
+    type: 'costing' as const,
+    details: "Labor rate changed from $25/hour to $28/hour",
+    metadata: { oldRate: 25, newRate: 28, reason: "Market adjustment" }
+  },
+  {
+    id: "3",
+    timestamp: Date.now() - 1000 * 60 * 60 * 2,
+    user: "floor@demo",
+    action: "Item advanced to next stage",
+    type: 'stage' as const,
+    details: "Moved from Assembly to Quality Check",
+    metadata: { fromStage: "Assembly", toStage: "Quality Check" }
+  }
+]
+
+const generateMockOrder = () => ({
+  id: "order-123",
+  code: "PO-2024-001",
+  dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3).toISOString(), // 3 days from now
+  totalItems: 50,
+  completedItems: 35,
+  status: 'in_progress' as const,
+  customer: "Acme Corp",
+  priority: 'high' as const
+})
+
+const generateMockCostData = () => ({
+  laborRate: 28,
+  quotedLabor: 1400,
+  activeTime: 1000 * 60 * 60 * 4.5, // 4.5 hours
+  costToDate: 1260, // 4.5 * 28
+  margin: 140, // 1400 - 1260
+  currency: "USD",
+  source: 'order' as const
+})
 
 export default function ItemDetailPage({ params }: { params: Promise<{ itemId: string }> }) {
   const router = useRouter()
+  const { toast } = useToast()
   const { itemId } = use(params)
+  
+  // Queries
   const item = useQuery(api.items.getById, { id: itemId as any })
   const workflow = useQuery(api.workflows.getById, item?.workflowId ? { id: item.workflowId } : "skip")
   const itemHistory = useQuery(api.items.getItemHistory, item?._id ? { itemId: item._id } : "skip")
+
+  // State
+  const [activeTab, setActiveTab] = useState("overview")
+  const [notes, setNotes] = useState(generateMockNotes())
+  const [messages, setMessages] = useState(generateMockMessages())
+  const [attachments, setAttachments] = useState(generateMockAttachments())
+
+  // Mock data
+  const events = generateMockEvents(itemId)
+  const locationHistory = generateMockLocationHistory()
+  const currentLocation = locationHistory[locationHistory.length - 1]
+  const order = generateMockOrder()
+  const costData = generateMockCostData()
+  const auditEntries = generateMockAuditEntries(itemId)
+
+  // Stage history for timeline
+  const stageHistory = workflow?.stages.map((stage, index) => ({
+    stage,
+    enteredAt: Date.now() - (workflow.stages.length - index) * 1000 * 60 * 60,
+    exitedAt: index < workflow.stages.length - 1 ? Date.now() - (workflow.stages.length - index - 1) * 1000 * 60 * 60 : undefined,
+    duration: index < workflow.stages.length - 1 ? 1000 * 60 * 60 : undefined,
+    isCurrent: stage.id === item?.currentStageId,
+    isCompleted: index < workflow.stages.findIndex(s => s.id === item?.currentStageId)
+  })) || []
 
   if (!item) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <div className="h-12 w-12 text-gray-400 mx-auto mb-4">📦</div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Item not found</h3>
           <p className="text-gray-600 mb-4">The item you're looking for doesn't exist.</p>
-          <Button onClick={() => router.push("/app/items")}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
+          <button 
+            onClick={() => router.push("/app/items")}
+            className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
+          >
             Back to Items
-          </Button>
+          </button>
         </div>
       </div>
     )
   }
 
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case "active":
-        return { 
-          label: "Active", 
-          color: "bg-blue-100 text-blue-800 border-blue-200", 
-          icon: Play,
-          bgColor: "bg-blue-50"
-        }
-      case "paused":
-        return { 
-          label: "Paused", 
-          color: "bg-yellow-100 text-yellow-800 border-yellow-200", 
-          icon: Pause,
-          bgColor: "bg-yellow-50"
-        }
-      case "completed":
-        return { 
-          label: "Completed", 
-          color: "bg-green-100 text-green-800 border-green-200", 
-          icon: CheckCircle,
-          bgColor: "bg-green-50"
-        }
-      case "error":
-        return { 
-          label: "Error", 
-          color: "bg-red-100 text-red-800 border-red-200", 
-          icon: AlertCircle,
-          bgColor: "bg-red-50"
-        }
-      default:
-        return { 
-          label: "Unknown", 
-          color: "bg-gray-100 text-gray-800 border-gray-200", 
-          icon: AlertCircle,
-          bgColor: "bg-gray-50"
-        }
+  const currentStage = workflow?.stages.find(stage => stage.id === item.currentStageId)
+
+  // Event handlers
+  const handleAddNote = async (text: string) => {
+    const newNote = {
+      id: Date.now().toString(),
+      text,
+      author: "admin@demo",
+      timestamp: Date.now(),
+      type: 'note' as const
     }
+    setNotes(prev => [newNote, ...prev])
   }
 
-  const getCurrentStage = () => {
-    if (!workflow || !item) return null
-    return workflow.stages.find(stage => stage.id === item.currentStageId)
+  const handleSendMessage = async (text: string, recipients: string[]) => {
+    const newMessage = {
+      id: Date.now().toString(),
+      text,
+      author: "admin@demo",
+      timestamp: Date.now(),
+      type: 'user' as const,
+      recipients
+    }
+    setMessages(prev => [newMessage, ...prev])
   }
 
-  const getWorkflowProgress = () => {
-    if (!workflow || !item) return 0
-    const currentStageIndex = workflow.stages.findIndex(stage => stage.id === item.currentStageId)
-    return ((currentStageIndex + 1) / workflow.stages.length) * 100
+  const handleUploadFile = async (file: File) => {
+    const newAttachment = {
+      id: Date.now().toString(),
+      name: file.name,
+      type: file.type.startsWith('image/') ? 'image' as const : 'document' as const,
+      size: file.size,
+      uploadedBy: "admin@demo",
+      uploadedAt: Date.now()
+    }
+    setAttachments(prev => [newAttachment, ...prev])
   }
 
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+  const handleDeleteFile = async (fileId: string) => {
+    setAttachments(prev => prev.filter(att => att.id !== fileId))
+  }
+
+  const handleAdvanceItem = async (itemId: string, toStageId: string, reason: string) => {
+    // Mock implementation - in real app this would call the API
+    toast({
+      title: "Item advanced",
+      description: `Item advanced to next stage. Reason: ${reason}`,
     })
   }
 
-  const statusConfig = getStatusConfig(item.status)
-  const currentStage = getCurrentStage()
-  const progress = getWorkflowProgress()
+  const handleUpdateMetadata = async (key: string, value: string) => {
+    // Mock implementation - in real app this would call the API
+    toast({
+      title: "Metadata updated",
+      description: `${key} updated to ${value}`,
+    })
+  }
+
+  const handleUpdateLaborRate = async (rate: number, reason: string) => {
+    // Mock implementation - in real app this would call the API
+    toast({
+      title: "Labor rate updated",
+      description: `Rate updated to $${rate}/hour. Reason: ${reason}`,
+    })
+  }
+
+  const handleUpdateQuotedLabor = async (quoted: number, reason: string) => {
+    // Mock implementation - in real app this would call the API
+    toast({
+      title: "Quoted labor updated",
+      description: `Quoted labor updated to $${quoted}. Reason: ${reason}`,
+    })
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          onClick={() => router.back()}
-          className="h-10 w-10 p-0"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-3xl font-semibold tracking-tight">{item.itemId}</h1>
-          <p className="text-gray-600 italic">Item details and progress tracking</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            onClick={() => router.push(`/app/items/${item._id}/edit`)}
-          >
-            <Edit3 className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Sticky Header */}
+      {item && workflow && (
+        <ItemHeader
+          item={item}
+          workflow={workflow}
+          currentStage={currentStage}
+          onAdvanceItem={handleAdvanceItem}
+          onReassignTeam={() => {}}
+          onFlagIssue={() => {}}
+        />
+      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Status & Progress */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Status & Progress
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Badge className={statusConfig.color}>
-                  <statusConfig.icon className="w-3 h-3 mr-1" />
-                  {statusConfig.label}
-                </Badge>
-                <span className="text-sm text-gray-600">
-                  Started {formatDate(item.startedAt)}
-                </span>
+      {/* Main Content */}
+      <div className="px-6 py-6">
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-7 mb-6">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="timeline">Timeline</TabsTrigger>
+            <TabsTrigger value="workflow">Workflow</TabsTrigger>
+            <TabsTrigger value="costs">Costs</TabsTrigger>
+            <TabsTrigger value="messaging">Messaging</TabsTrigger>
+            <TabsTrigger value="attachments">Attachments</TabsTrigger>
+            <TabsTrigger value="audit">Audit</TabsTrigger>
+          </TabsList>
+
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Column - Operational */}
+              <div className="lg:col-span-2 space-y-6">
+                <EventFeed events={events} />
+                <NotesPanel 
+                  notes={notes} 
+                  onAddNote={handleAddNote}
+                  currentUser="admin@demo"
+                />
+                <LocationHistory 
+                  currentLocation={currentLocation}
+                  locationHistory={locationHistory}
+                />
               </div>
 
-              {workflow && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Workflow Progress</span>
-                    <span className="text-sm text-gray-600">{Math.round(progress)}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    {workflow.stages.findIndex(stage => stage.id === item.currentStageId) + 1} of {workflow.stages.length} stages
-                  </div>
-                </div>
-              )}
-
-              {currentStage && (
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <MapPin className="h-4 w-4 text-gray-500" />
-                    <span className="font-medium">Current Stage</span>
-                  </div>
-                  <div className="text-lg font-semibold">{currentStage.name}</div>
-                  {currentStage.description && (
-                    <p className="text-sm text-gray-600 mt-1">{currentStage.description}</p>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Workflow Stages */}
-          {workflow && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Workflow className="h-5 w-5" />
-                  Workflow Stages
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {workflow.stages.map((stage, index) => {
-                    const isCurrent = stage.id === item.currentStageId
-                    const isCompleted = workflow.stages.findIndex(s => s.id === item.currentStageId) > index
-                    const isUpcoming = workflow.stages.findIndex(s => s.id === item.currentStageId) < index
-
-                    return (
-                      <div 
-                        key={stage.id} 
-                        className={`flex items-center gap-3 p-3 rounded-lg border ${
-                          isCurrent 
-                            ? "bg-blue-50 border-blue-200" 
-                            : isCompleted 
-                            ? "bg-green-50 border-green-200"
-                            : "bg-gray-50 border-gray-200"
-                        }`}
-                      >
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                          isCurrent 
-                            ? "bg-blue-600 text-white" 
-                            : isCompleted 
-                            ? "bg-green-600 text-white"
-                            : "bg-gray-300 text-gray-600"
-                        }`}>
-                          {isCompleted ? <CheckCircle className="h-4 w-4" /> : index + 1}
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-medium">{stage.name}</div>
-                          {stage.description && (
-                            <div className="text-sm text-gray-600">{stage.description}</div>
-                          )}
-                        </div>
-                        {isCurrent && (
-                          <Badge variant="outline" className="border-blue-300 text-blue-700">
-                            Current
-                          </Badge>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Item History */}
-          {itemHistory && itemHistory.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <History className="h-5 w-5" />
-                  Activity History
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {itemHistory.map((entry, index) => (
-                    <div key={index} className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg">
-                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                        <Clock className="h-4 w-4 text-gray-500" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium">{entry.action}</div>
-                        <div className="text-sm text-gray-600">
-                          {entry.stageName} • {formatDate(entry.timestamp)}
-                        </div>
-                        {entry.notes && (
-                          <div className="text-sm text-gray-500 mt-1">{entry.notes}</div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Basic Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                Basic Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Item ID</Label>
-                <p className="text-sm text-gray-900 font-mono">{item.itemId}</p>
+              {/* Right Column - Context */}
+              <div className="space-y-6">
+                <QRCard 
+                  qrData={item.qrCode || `item:${item.itemId}`}
+                  itemId={item.itemId}
+                />
+                <MetaTable 
+                  metadata={item.metadata || {}}
+                  onUpdateMetadata={handleUpdateMetadata}
+                />
+                <OrderSnapshot 
+                  order={order}
+                  onOpenOrder={(orderId) => {
+                    toast({
+                      title: "Order opened",
+                      description: `Opening order ${orderId}`,
+                    })
+                  }}
+                />
               </div>
+            </div>
+          </TabsContent>
 
-              {item.description && (
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Description</Label>
-                  <p className="text-sm text-gray-900">{item.description}</p>
-                </div>
-              )}
+          {/* Timeline Tab */}
+          <TabsContent value="timeline" className="space-y-6">
+            <StageTimeline
+              stages={workflow?.stages || []}
+              currentStageId={item.currentStageId}
+              stageHistory={stageHistory}
+              startTime={item.startedAt}
+            />
+          </TabsContent>
 
-              {item.assignedTo && (
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Assigned To</Label>
-                  <p className="text-sm text-gray-900">{item.assignedTo}</p>
-                </div>
-              )}
+          {/* Workflow Tab */}
+          <TabsContent value="workflow" className="space-y-6">
+            <WorkflowMiniMap
+              workflow={workflow!}
+              currentStageId={item.currentStageId}
+              onAdvanceItem={handleAdvanceItem}
+              itemId={item._id}
+            />
+          </TabsContent>
 
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Started</Label>
-                <p className="text-sm text-gray-900">{formatDate(item.startedAt)}</p>
-              </div>
+          {/* Costs Tab */}
+          <TabsContent value="costs" className="space-y-6">
+            <CostsPanel
+              costData={costData}
+              onUpdateLaborRate={handleUpdateLaborRate}
+              onUpdateQuotedLabor={handleUpdateQuotedLabor}
+            />
+          </TabsContent>
 
-              {item.updatedAt !== item.startedAt && (
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Last Updated</Label>
-                  <p className="text-sm text-gray-900">{formatDate(item.updatedAt)}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Messaging Tab */}
+          <TabsContent value="messaging" className="space-y-6">
+            <MessagingThread
+              messages={messages}
+              onSendMessage={handleSendMessage}
+              currentUser="admin@demo"
+              itemId={item._id}
+            />
+          </TabsContent>
 
-          {/* Metadata */}
-          {item.metadata && Object.keys(item.metadata).length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Tag className="h-5 w-5" />
-                  Item Attributes
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {Object.entries(item.metadata).map(([key, value]) => (
-                  <div key={key}>
-                    <Label className="text-sm font-medium text-gray-700 capitalize">
-                      {key.replace(/([A-Z])/g, ' $1').trim()}
-                    </Label>
-                    <p className="text-sm text-gray-900">{String(value)}</p>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+          {/* Attachments Tab */}
+          <TabsContent value="attachments" className="space-y-6">
+            <AttachmentsPanel
+              attachments={attachments}
+              onUploadFile={handleUploadFile}
+              onDeleteFile={handleDeleteFile}
+              onPreviewFile={(fileId) => {
+                toast({
+                  title: "File preview",
+                  description: `Opening preview for file ${fileId}`,
+                })
+              }}
+            />
+          </TabsContent>
 
-          {/* Workflow Information */}
-          {workflow && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Workflow className="h-5 w-5" />
-                  Workflow Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Workflow</Label>
-                  <p className="text-sm text-gray-900 font-medium">{workflow.name}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Total Stages</Label>
-                  <p className="text-sm text-gray-900">{workflow.stages.length}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Created</Label>
-                  <p className="text-sm text-gray-900">{formatDate(workflow.createdAt)}</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+          {/* Audit Tab */}
+          <TabsContent value="audit" className="space-y-6">
+            <AuditLog entries={auditEntries} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )

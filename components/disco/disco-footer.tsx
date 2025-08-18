@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, forwardRef, useImperativeHandle } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -75,7 +75,8 @@ interface Task {
   notes?: string
 }
 
-export function DiscoFooter({ onScan, isScannerOpen, onScannerToggle, currentTeam = "production" }: DiscoFooterProps) {
+export const DiscoFooter = forwardRef<{ handleOpenMessagePanel: (attachedItemId?: string) => void }, DiscoFooterProps>(
+  ({ onScan, isScannerOpen, onScannerToggle, currentTeam = "production" }, ref) => {
   const [isProcessing, setIsProcessing] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'inbox' | 'messages' | 'notifications'>('inbox')
@@ -90,6 +91,22 @@ export function DiscoFooter({ onScan, isScannerOpen, onScannerToggle, currentTea
   const [userSearch, setUserSearch] = useState('')
   const [itemSearch, setItemSearch] = useState('')
   const { toast } = useToast()
+
+  // Handle opening message panel with item attached
+  const handleOpenMessagePanel = (attachedItemId?: string) => {
+    // Open menu and set to compose mode
+    setIsMenuOpen(true)
+    setActiveTab('messages')
+    setViewMode('compose')
+    if (attachedItemId) {
+      setSelectedItems([attachedItemId])
+    }
+  }
+
+  // Expose handleOpenMessagePanel through ref
+  useImperativeHandle(ref, () => ({
+    handleOpenMessagePanel
+  }))
 
   // Get real data from Convex
   const users = useQuery(api.users.getAll) || []
@@ -551,9 +568,30 @@ export function DiscoFooter({ onScan, isScannerOpen, onScannerToggle, currentTea
                                       </div>
                                       <p className="text-sm text-gray-700">{message.content}</p>
                                       {message.metadata?.attachedItems && message.metadata.attachedItems.length > 0 && (
-                                        <div className="mt-2 flex items-center gap-1 text-xs text-gray-500">
-                                          <Package className="w-3 h-3" />
-                                          Attached: {message.metadata.attachedItems.length} item(s)
+                                        <div className="mt-2 space-y-1">
+                                          <div className="flex items-center gap-1 text-xs text-gray-500">
+                                            <Package className="w-3 h-3" />
+                                            Attached Items:
+                                          </div>
+                                          <div className="flex flex-wrap gap-1">
+                                            {message.metadata.attachedItems.map((itemId: string) => {
+                                              const item = items.find(i => i._id === itemId)
+                                              return (
+                                                <Button
+                                                  key={itemId}
+                                                  variant="outline"
+                                                  size="sm"
+                                                  className="h-6 text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                                                  onClick={() => {
+                                                    // Navigate to item details page
+                                                    window.location.href = `/disco/items/${item?.itemId || itemId}`
+                                                  }}
+                                                >
+                                                  #{item?.itemId || itemId}
+                                                </Button>
+                                              )
+                                            })}
+                                          </div>
                                         </div>
                                       )}
                                     </div>
@@ -742,6 +780,37 @@ export function DiscoFooter({ onScan, isScannerOpen, onScannerToggle, currentTea
                                 </Select>
                               </div>
 
+                              {/* Attached Items */}
+                              {selectedItems.length > 0 && (
+                                <div className="space-y-2">
+                                  <label className="text-sm font-medium">Attached Items</label>
+                                  <div className="space-y-2">
+                                    {selectedItems.map((itemId) => {
+                                      const item = items.find(i => i._id === itemId)
+                                      return (
+                                        <div key={itemId} className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded-md">
+                                          <div className="flex items-center gap-2">
+                                            <Package className="w-4 h-4 text-blue-600" />
+                                            <span className="text-sm font-medium">#{item?.itemId || itemId}</span>
+                                            {item?.metadata?.brand && (
+                                              <span className="text-xs text-gray-500">({item.metadata.brand})</span>
+                                            )}
+                                          </div>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => toggleItemSelection(itemId)}
+                                            className="h-6 w-6 p-0 text-red-600 hover:text-red-800"
+                                          >
+                                            <X className="w-3 h-3" />
+                                          </Button>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
                               {/* Message */}
                               <div className="space-y-2 flex-1 flex flex-col">
                                 <label className="text-sm font-medium">Message</label>
@@ -860,6 +929,37 @@ export function DiscoFooter({ onScan, isScannerOpen, onScannerToggle, currentTea
                                 />
                               </div>
 
+                              {/* Attached Items */}
+                              {selectedItems.length > 0 && (
+                                <div className="space-y-2">
+                                  <label className="text-sm font-medium">Attached Items</label>
+                                  <div className="space-y-2">
+                                    {selectedItems.map((itemId) => {
+                                      const item = items.find(i => i._id === itemId)
+                                      return (
+                                        <div key={itemId} className="flex items-center justify-between p-2 bg-orange-50 border border-orange-200 rounded-md">
+                                          <div className="flex items-center gap-2">
+                                            <Package className="w-4 h-4 text-orange-600" />
+                                            <span className="text-sm font-medium">#{item?.itemId || itemId}</span>
+                                            {item?.metadata?.brand && (
+                                              <span className="text-xs text-gray-500">({item.metadata.brand})</span>
+                                            )}
+                                          </div>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => toggleItemSelection(itemId)}
+                                            className="h-6 w-6 p-0 text-red-600 hover:text-red-800"
+                                          >
+                                            <X className="w-3 h-3" />
+                                          </Button>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
                               {/* Task Description */}
                               <div className="space-y-2 flex-1 flex flex-col">
                                 <label className="text-sm font-medium">Task Description</label>
@@ -936,4 +1036,4 @@ export function DiscoFooter({ onScan, isScannerOpen, onScannerToggle, currentTea
       </Dialog>
     </>
   )
-}
+})

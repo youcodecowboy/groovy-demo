@@ -464,21 +464,79 @@ export default defineSchema({
     brandId: v.id("brands"),
     factoryId: v.id("factories"),
     poNumber: v.string(),
-    status: v.union(v.literal("pending"), v.literal("accepted"), v.literal("rejected"), v.literal("completed")),
+    status: v.union(v.literal("pending"), v.literal("accepted"), v.literal("rejected"), v.literal("in_production"), v.literal("paused"), v.literal("completed"), v.literal("cancelled")),
     items: v.array(v.object({
       sku: v.string(),
       quantity: v.number(),
       description: v.string(),
       specifications: v.optional(v.any()),
+      unitPrice: v.optional(v.number()),
+      variant: v.optional(v.string()),
+      size: v.optional(v.string()),
+      color: v.optional(v.string()),
     })),
     totalValue: v.number(),
     requestedDeliveryDate: v.number(),
+    promisedDeliveryDate: v.optional(v.number()),
     submittedAt: v.number(),
     acceptedAt: v.optional(v.number()),
     acceptedBy: v.optional(v.string()), // User ID
+    productionStartDate: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+    completedBy: v.optional(v.string()),
     notes: v.optional(v.string()),
     metadata: v.optional(v.any()),
-  }).index("by_brand", ["brandId"]).index("by_factory", ["factoryId"]).index("by_status", ["status"]),
+    // Enhanced fields for production tracking
+    progress: v.optional(v.object({
+      totalItems: v.number(),
+      completedItems: v.number(),
+      defectiveItems: v.number(),
+      reworkItems: v.number(),
+      lastUpdated: v.number(),
+    })),
+    // Financial tracking
+    financials: v.optional(v.object({
+      orderValue: v.number(),
+      estimatedLaborCost: v.optional(v.number()),
+      estimatedMaterialsCost: v.optional(v.number()),
+      actualLaborCost: v.optional(v.number()),
+      actualMaterialsCost: v.optional(v.number()),
+      overheads: v.optional(v.number()),
+      grossMargin: v.optional(v.number()),
+      paymentTerms: v.optional(v.string()),
+      paymentsReceived: v.optional(v.array(v.object({
+        amount: v.number(),
+        date: v.number(),
+        method: v.string(),
+        reference: v.optional(v.string()),
+      }))),
+      totalPaid: v.optional(v.number()),
+    })),
+    // Lead time tracking
+    leadTime: v.optional(v.object({
+      promisedDays: v.number(),
+      actualDays: v.optional(v.number()),
+      status: v.optional(v.union(v.literal("ahead"), v.literal("on_track"), v.literal("behind"))),
+    })),
+    // Team assignment
+    assignedTeam: v.optional(v.string()),
+    orderOwner: v.optional(v.string()),
+    // Attachments and documents
+    attachments: v.optional(v.array(v.object({
+      name: v.string(),
+      url: v.string(),
+      type: v.string(),
+      uploadedAt: v.number(),
+      uploadedBy: v.string(),
+    }))),
+    // Audit trail
+    auditLog: v.optional(v.array(v.object({
+      action: v.string(),
+      timestamp: v.number(),
+      userId: v.string(),
+      details: v.optional(v.any()),
+    }))),
+  }).index("by_brand", ["brandId"]).index("by_factory", ["factoryId"]).index("by_status", ["status"]).index("by_org", ["orgId"]),
 
   // Customers table - for customer management
   customers: defineTable({

@@ -1,12 +1,22 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useToast } from "@/hooks/use-toast"
-import { DiscoHeader } from "@/components/disco/disco-header"
-import { DiscoFooter } from "@/components/disco/disco-footer"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { 
+  DiscoHeader,
+  DiscoFooter,
+  DiscoItemHeader,
+  DiscoEventFeed,
+  DiscoNotesPanel,
+  DiscoQRCard,
+  DiscoMessaging,
+  DiscoAttachments,
+  DiscoQuickActions
+} from "@/components/disco"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -40,7 +50,8 @@ import {
   Pause,
   Flag,
   History,
-  Settings
+  Settings,
+  MessageSquare
 } from "lucide-react"
 
 export default function ItemDetailPage() {
@@ -53,6 +64,8 @@ export default function ItemDetailPage() {
   const [currentAction, setCurrentAction] = useState<any>(null)
   const [actionData, setActionData] = useState<any>({})
   const [isProcessing, setIsProcessing] = useState(false)
+  const [activeTab, setActiveTab] = useState("actions")
+  const footerRef = useRef<any>(null)
 
   const itemId = params.itemId as string
 
@@ -60,8 +73,172 @@ export default function ItemDetailPage() {
   const item = useQuery(api.items.getItemsByTeam, { teamId: selectedTeam })
   const currentItem = item?.find((i: any) => i.itemId === itemId)
 
+  // Mock data generators for disco components
+  const generateMockEvents = (itemId: string) => [
+    {
+      id: "1",
+      type: "scan" as const,
+      timestamp: Date.now() - 1000 * 60 * 5,
+      summary: "Item scanned at cutting station",
+      user: "disco-user@demo",
+      stage: "Cutting"
+    },
+    {
+      id: "2",
+      type: "transition" as const,
+      timestamp: Date.now() - 1000 * 60 * 15,
+      summary: "Moved to sewing stage",
+      user: "disco-user@demo",
+      stage: "Sewing"
+    },
+    {
+      id: "3",
+      type: "note" as const,
+      timestamp: Date.now() - 1000 * 60 * 30,
+      summary: "Quality check completed",
+      user: "disco-user@demo",
+      stage: "QC"
+    }
+  ]
+
+  const generateMockNotes = () => [
+    {
+      id: "1",
+      text: "Fabric quality looks good, proceeding with cutting",
+      author: "disco-user@demo",
+      timestamp: Date.now() - 1000 * 60 * 10,
+      type: "note" as const
+    },
+    {
+      id: "2",
+      text: "Minor adjustment needed for seam allowance",
+      author: "disco-user@demo",
+      timestamp: Date.now() - 1000 * 60 * 25,
+      type: "alert" as const
+    }
+  ]
+
+  const generateMockMessages = () => [
+    {
+      id: "1",
+      text: "Item ready for next stage",
+      author: "disco-user@demo",
+      timestamp: Date.now() - 1000 * 60 * 5,
+      type: "user" as const,
+      recipients: ["admin@demo"]
+    },
+    {
+      id: "2",
+      text: "System notification: Item advanced to sewing",
+      author: "system@demo",
+      timestamp: Date.now() - 1000 * 60 * 15,
+      type: "system" as const
+    }
+  ]
+
+  const generateMockAttachments = () => [
+    {
+      id: "1",
+      name: "fabric_sample.jpg",
+      type: "image" as const,
+      size: 1024 * 512,
+      uploadedBy: "disco-user@demo",
+      uploadedAt: Date.now() - 1000 * 60 * 20
+    },
+    {
+      id: "2",
+      name: "quality_check.pdf",
+      type: "pdf" as const,
+      size: 1024 * 256,
+      uploadedBy: "disco-user@demo",
+      uploadedAt: Date.now() - 1000 * 60 * 35
+    }
+  ]
+
+  // State for mock data
+  const [notes, setNotes] = useState(generateMockNotes())
+  const [messages, setMessages] = useState(generateMockMessages())
+  const [attachments, setAttachments] = useState(generateMockAttachments())
+
+  // Mock data
+  const events = generateMockEvents(itemId)
+
   // Mutations
   const advanceItem = useMutation(api.items.advanceItemWithValidation)
+
+  // Event handlers for disco components
+  const handleAddNote = async (text: string) => {
+    const newNote = {
+      id: Date.now().toString(),
+      text,
+      author: "disco-user@demo",
+      timestamp: Date.now(),
+      type: 'note' as const
+    }
+    setNotes(prev => [newNote, ...prev])
+  }
+
+  const handleSendMessage = async (text: string, recipients: string[]) => {
+    const newMessage = {
+      id: Date.now().toString(),
+      text,
+      author: "disco-user@demo",
+      timestamp: Date.now(),
+      type: 'user' as const,
+      recipients
+    }
+    setMessages(prev => [newMessage, ...prev])
+  }
+
+  const handleUploadFile = async (file: File) => {
+    const newAttachment = {
+      id: Date.now().toString(),
+      name: file.name,
+      type: file.type.startsWith('image/') ? 'image' as const : 'document' as const,
+      size: file.size,
+      uploadedBy: "disco-user@demo",
+      uploadedAt: Date.now()
+    }
+    setAttachments(prev => [newAttachment, ...prev])
+  }
+
+  const handleDeleteFile = async (fileId: string) => {
+    setAttachments(prev => prev.filter(att => att.id !== fileId))
+  }
+
+  const handleFlagIssue = async (itemId: string, reason: string) => {
+    toast({
+      title: "Item Flagged",
+      description: `Issue flagged: ${reason}`,
+    })
+  }
+
+  const handleAddMessage = async (itemId: string) => {
+    // This would open a messaging interface
+    toast({
+      title: "Messaging",
+      description: "Messaging interface opened",
+    })
+  }
+
+  // Quick actions handlers
+  const handleQuickFlagItem = () => {
+    handleFlagIssue(itemId, 'Flagged from quick actions')
+  }
+
+  const handleQuickSendMessage = () => {
+    // Open footer message panel with item attached
+    if (footerRef.current?.handleOpenMessagePanel) {
+      footerRef.current.handleOpenMessagePanel(itemId)
+    }
+  }
+
+  const handleQuickMarkDefective = () => {
+    toast({
+      title: "Item Marked Defective",
+      description: `Item ${itemId} has been marked as defective`,
+    })
+  }
 
   // Auto-detect team from item's current stage
   useEffect(() => {
@@ -255,201 +432,191 @@ export default function ItemDetailPage() {
       {/* Sticky Header */}
       <DiscoHeader currentTeam={selectedTeam} />
       
+      {/* Mobile-Optimized Item Header */}
+      {currentItem && (
+        <DiscoItemHeader
+          item={currentItem}
+          currentStage={currentItem.currentStage}
+          onFlagIssue={handleFlagIssue}
+          onAddMessage={handleAddMessage}
+        />
+      )}
+      
       {/* Main Content */}
       <div className="flex-1 pb-20">
-        <div className="container mx-auto px-4 py-6">
-          {/* Back Button */}
-          <Button
-            variant="outline"
-            onClick={() => router.push("/disco")}
-            className="mb-6"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Queue
-          </Button>
+        <div className="container mx-auto px-4 py-4">
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-4 mb-4">
+              <TabsTrigger value="actions">Actions</TabsTrigger>
+              <TabsTrigger value="activity">Activity</TabsTrigger>
+              <TabsTrigger value="notes">Notes</TabsTrigger>
+              <TabsTrigger value="files">Files</TabsTrigger>
+            </TabsList>
 
-          {/* Item Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">#{currentItem.itemId}</h1>
-                <p className="text-gray-600">{currentItem.metadata?.brand || "Unknown Brand"}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                  {currentItem.currentStage?.name || "Unknown Stage"}
-                </Badge>
-                <Badge variant={currentItem.status === "active" ? "default" : "secondary"}>
-                  {currentItem.status}
-                </Badge>
-              </div>
-            </div>
+            {/* Activity Tab */}
+            <TabsContent value="activity" className="space-y-4">
+              <DiscoEventFeed events={events} />
+            </TabsContent>
 
-            {/* Item Details Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                    <Package className="w-4 h-4" />
-                    Order Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div>
-                    <span className="text-sm text-gray-500">Order:</span>
-                    <p className="font-medium">{currentItem.metadata?.purchaseOrderId || "N/A"}</p>
+            {/* Actions Tab */}
+            <TabsContent value="actions" className="space-y-4">
+              {/* Required Actions Section */}
+              {requiredActions.length > 0 && (
+                <div className="mb-6">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-orange-500" />
+                    Required Actions
+                  </h2>
+                  <div className="space-y-3">
+                    {requiredActions.map((action: any) => (
+                      <Card key={action.id} className="border-orange-200 bg-orange-50">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm font-medium text-orange-800 flex items-center gap-2">
+                            {action.type === "scan" && <ScanLine className="w-4 h-4" />}
+                            {action.type === "note" && <FileText className="w-4 h-4" />}
+                            {action.type === "measurement" && <Ruler className="w-4 h-4" />}
+                            {action.type === "approval" && <CheckCircle className="w-4 h-4" />}
+                            {action.type === "photo" && <Camera className="w-4 h-4" />}
+                            {action.type === "inspection" && <Eye className="w-4 h-4" />}
+                            {action.label}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-orange-700 mb-3">
+                            {action.description || "This action is required to advance the item."}
+                          </p>
+                          <Button
+                            onClick={() => handleActionClick(action)}
+                            className="w-full bg-orange-600 hover:bg-orange-700"
+                          >
+                            Complete Action
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
-                  <div>
-                    <span className="text-sm text-gray-500">Customer:</span>
-                    <p className="font-medium">{currentItem.metadata?.brand || "Unknown"}</p>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              )}
 
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    Location & Assignment
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div>
-                    <span className="text-sm text-gray-500">Location:</span>
-                    <p className="font-medium">{currentItem.currentLocationId || "Unassigned"}</p>
+              {/* Optional Actions Section */}
+              {optionalActions.length > 0 && (
+                <div className="mb-6">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Optional Actions</h2>
+                  <div className="space-y-3">
+                    {optionalActions.map((action: any) => (
+                      <Card key={action.id}>
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                            {action.type === "scan" && <ScanLine className="w-4 h-4" />}
+                            {action.type === "note" && <FileText className="w-4 h-4" />}
+                            {action.type === "measurement" && <Ruler className="w-4 h-4" />}
+                            {action.type === "approval" && <CheckCircle className="w-4 h-4" />}
+                            {action.type === "photo" && <Camera className="w-4 h-4" />}
+                            {action.type === "inspection" && <Eye className="w-4 h-4" />}
+                            {action.label}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-gray-600 mb-3">
+                            {action.description || "This action is optional."}
+                          </p>
+                          <Button
+                            variant="outline"
+                            onClick={() => handleActionClick(action)}
+                            className="w-full"
+                          >
+                            Complete Action
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
-                  <div>
-                    <span className="text-sm text-gray-500">Assigned To:</span>
-                    <p className="font-medium">{currentItem.assignedTo || "Unassigned"}</p>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              )}
 
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    Timing
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div>
-                    <span className="text-sm text-gray-500">Started:</span>
-                    <p className="font-medium">
-                      {new Date(currentItem.startedAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-sm text-gray-500">Est. Duration:</span>
-                    <p className="font-medium">
-                      {currentItem.currentStage?.estimatedDuration || 4}h
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+              {/* QR Card - Moved below actions */}
+              <DiscoQRCard
+                qrData={currentItem?.qrCode || `item:${itemId}`}
+                itemId={itemId}
+              />
+            </TabsContent>
 
-          {/* Required Actions Section */}
-          {requiredActions.length > 0 && (
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-orange-500" />
-                Required Actions
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {requiredActions.map((action: any) => (
-                  <Card key={action.id} className="border-orange-200 bg-orange-50">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium text-orange-800 flex items-center gap-2">
-                        {action.type === "scan" && <ScanLine className="w-4 h-4" />}
-                        {action.type === "note" && <FileText className="w-4 h-4" />}
-                        {action.type === "measurement" && <Ruler className="w-4 h-4" />}
-                        {action.type === "approval" && <CheckCircle className="w-4 h-4" />}
-                        {action.type === "photo" && <Camera className="w-4 h-4" />}
-                        {action.type === "inspection" && <Eye className="w-4 h-4" />}
-                        {action.label}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-orange-700 mb-3">
-                        {action.description || "This action is required to advance the item."}
-                      </p>
-                      <Button
-                        onClick={() => handleActionClick(action)}
-                        className="w-full bg-orange-600 hover:bg-orange-700"
-                      >
-                        Complete Action
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
+            {/* Notes Tab */}
+            <TabsContent value="notes" className="space-y-4">
+              <DiscoNotesPanel
+                notes={notes}
+                onAddNote={handleAddNote}
+                currentUser="disco-user@demo"
+              />
+              {/* Message History - Only show if there are messages */}
+              {messages.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <MessageSquare className="h-4 w-4" />
+                      Message History
+                      <Badge variant="outline" className="ml-auto text-xs">
+                        {messages.length}
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {messages.map((message) => (
+                      <div key={message.id} className="p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm font-medium">
+                            {message.author.split('@')[0]}
+                          </span>
+                          {message.type !== 'user' && (
+                            <Badge className="text-xs bg-blue-100 text-blue-800">
+                              {message.type}
+                            </Badge>
+                          )}
+                          <span className="text-xs text-gray-500 flex items-center gap-1 ml-auto">
+                            <Clock className="h-3 w-3" />
+                            {new Date(message.timestamp).toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-700">
+                          {message.text}
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
 
-          {/* Optional Actions Section */}
-          {optionalActions.length > 0 && (
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Optional Actions</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {optionalActions.map((action: any) => (
-                  <Card key={action.id}>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                        {action.type === "scan" && <ScanLine className="w-4 h-4" />}
-                        {action.type === "note" && <FileText className="w-4 h-4" />}
-                        {action.type === "measurement" && <Ruler className="w-4 h-4" />}
-                        {action.type === "approval" && <CheckCircle className="w-4 h-4" />}
-                        {action.type === "photo" && <Camera className="w-4 h-4" />}
-                        {action.type === "inspection" && <Eye className="w-4 h-4" />}
-                        {action.label}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-gray-600 mb-3">
-                        {action.description || "This action is optional."}
-                      </p>
-                      <Button
-                        variant="outline"
-                        onClick={() => handleActionClick(action)}
-                        className="w-full"
-                      >
-                        Complete Action
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Next Stage Preview */}
-          {currentItem.nextStage && (
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Next Stage</h2>
-              <Card className="border-blue-200 bg-blue-50">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium text-blue-900">{currentItem.nextStage.name}</h3>
-                      <p className="text-sm text-blue-700">
-                        {currentItem.nextStage.description || "Next stage in the workflow"}
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
-                      Next
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+            {/* Files Tab */}
+            <TabsContent value="files" className="space-y-4">
+              <DiscoAttachments
+                attachments={attachments}
+                onUploadFile={handleUploadFile}
+                onDeleteFile={handleDeleteFile}
+                onPreviewFile={(fileId) => {
+                  toast({
+                    title: "File preview",
+                    description: `Opening preview for file ${fileId}`,
+                  })
+                }}
+              />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
 
+      {/* Quick Actions Panel */}
+      <DiscoQuickActions
+        itemId={itemId}
+        onFlagItem={handleQuickFlagItem}
+        onSendMessage={handleQuickSendMessage}
+        onMarkDefective={handleQuickMarkDefective}
+      />
+
       {/* Sticky Footer with QR Scanner */}
       <DiscoFooter 
+        ref={footerRef}
         onScan={handleScan}
         isScannerOpen={isScannerOpen}
         onScannerToggle={() => setIsScannerOpen(!isScannerOpen)}

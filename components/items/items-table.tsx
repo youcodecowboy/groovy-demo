@@ -169,9 +169,19 @@ interface ColumnConfig {
   position: number
 }
 
-export default function ItemsTable() {
+interface ItemsTableProps {
+  statusFilter?: string
+  showStatusFilter?: boolean
+  showQuickActions?: boolean
+}
+
+export default function ItemsTable({ 
+  statusFilter: initialStatusFilter = "all",
+  showStatusFilter = true,
+  showQuickActions = false
+}: ItemsTableProps) {
   const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [statusFilter, setStatusFilter] = useState<string>(initialStatusFilter)
   const [workflowFilter, setWorkflowFilter] = useState<string>("all")
   const [brandFilter, setBrandFilter] = useState<string>("all")
   const [sortField, setSortField] = useState<string>("startedAt")
@@ -345,6 +355,20 @@ export default function ItemsTable() {
           icon: CheckCircle,
           dotColor: "bg-blue-500"
         }
+      case "flagged":
+        return {
+          label: "Flagged",
+          color: "bg-orange-50 text-orange-700 border-orange-200",
+          icon: Flag,
+          dotColor: "bg-orange-500"
+        }
+      case "defective":
+        return {
+          label: "Defective",
+          color: "bg-red-50 text-red-700 border-red-200",
+          icon: AlertTriangle,
+          dotColor: "bg-red-500"
+        }
       case "error":
         return {
           label: "Error",
@@ -425,6 +449,15 @@ export default function ItemsTable() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
+  }
+
+  const handleQuickStatusChange = (itemId: string, newStatus: string) => {
+    // TODO: Implement actual status change mutation
+    console.log(`Changing item ${itemId} status to ${newStatus}`)
+    
+    // For now, show a toast notification
+    // This would be replaced with actual Convex mutation
+    alert(`Item status changed to ${newStatus}`)
   }
 
   const updateColumnConfig = (columnId: string, updates: Partial<ColumnConfig>) => {
@@ -680,20 +713,24 @@ export default function ItemsTable() {
               {/* Advanced Filters */}
               {showFilters && (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3 pt-4 border-t">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Status</label>
-                    <select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none"
-                    >
-                      <option value="all">All Statuses</option>
-                      <option value="active">Active</option>
-                      <option value="paused">Paused</option>
-                      <option value="completed">Completed</option>
-                      <option value="error">Error</option>
-                    </select>
-                  </div>
+                  {showStatusFilter && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">Status</label>
+                      <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none"
+                      >
+                        <option value="all">All Statuses</option>
+                        <option value="active">Active</option>
+                        <option value="paused">Paused</option>
+                        <option value="completed">Completed</option>
+                        <option value="flagged">Flagged</option>
+                        <option value="defective">Defective</option>
+                        <option value="error">Error</option>
+                      </select>
+                    </div>
+                  )}
 
                   <div>
                     <label className="text-sm font-medium text-gray-700 mb-2 block">Workflow</label>
@@ -869,6 +906,59 @@ export default function ItemsTable() {
                                   >
                                     <Eye className="w-4 h-4" />
                                   </Button>
+                                  
+                                  {showQuickActions && (
+                                    <>
+                                      {item.status !== "flagged" && (
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => handleQuickStatusChange(item._id, "flagged")}
+                                          className="h-8 w-8 p-0 text-orange-600 hover:text-orange-800"
+                                          title="Flag Item"
+                                        >
+                                          <Flag className="w-4 h-4" />
+                                        </Button>
+                                      )}
+                                      
+                                      {item.status !== "defective" && (
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => handleQuickStatusChange(item._id, "defective")}
+                                          className="h-8 w-8 p-0 text-red-600 hover:text-red-800"
+                                          title="Mark Defective"
+                                        >
+                                          <AlertTriangle className="w-4 h-4" />
+                                        </Button>
+                                      )}
+                                      
+                                      {item.status === "flagged" && (
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => handleQuickStatusChange(item._id, "active")}
+                                          className="h-8 w-8 p-0 text-emerald-600 hover:text-emerald-800"
+                                          title="Unflag Item"
+                                        >
+                                          <CheckCircle className="w-4 h-4" />
+                                        </Button>
+                                      )}
+                                      
+                                      {item.status === "defective" && (
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => handleQuickStatusChange(item._id, "active")}
+                                          className="h-8 w-8 p-0 text-emerald-600 hover:text-emerald-800"
+                                          title="Mark as Active"
+                                        >
+                                          <CheckCircle className="w-4 h-4" />
+                                        </Button>
+                                      )}
+                                    </>
+                                  )}
+                                  
                                   <Button
                                     size="sm"
                                     variant="ghost"

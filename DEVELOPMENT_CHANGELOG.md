@@ -1,5 +1,543 @@
 # Development Changelog
 
+## [Latest] - Production Orders Module Implementation
+**Date**: December 2024
+**Type**: Major Feature Addition
+
+### 🎯 **Production Orders Module - Complete Overhaul**
+
+#### **Overview:**
+Implemented a comprehensive Production Orders module that transforms the Orders area into a first-class production management system. This includes enhanced backend functionality, new UI components, and a complete workflow for managing purchase orders from submission to completion.
+
+#### **Enhanced Backend Schema:**
+
+##### **Purchase Orders Table Enhancements**
+- **Extended Status System**: Added `in_production`, `paused`, `cancelled` statuses
+- **Progress Tracking**: Real-time progress with completed/defective/rework item counts
+- **Financial Tracking**: Comprehensive financial data including labor costs, materials, payments
+- **Lead Time Management**: Promised vs actual delivery tracking with RYG status
+- **Team Assignment**: Order owner and assigned team tracking
+- **Attachments System**: File upload and management for PO documents
+- **Audit Trail**: Complete action logging for all order changes
+
+##### **New Backend Functions**
+- **Enhanced Queries**: Status-based filtering, search, and advanced filtering
+- **Progress Updates**: Real-time progress tracking and status transitions
+- **Financial Management**: Cost calculations, payment recording, margin tracking
+- **Order Lifecycle**: Accept/reject, pause/resume, complete order functions
+- **Audit Logging**: Comprehensive audit trail for all order actions
+
+#### **New UI Components:**
+
+##### **Core Components**
+- **OrdersHeader**: Comprehensive header with tabs, filters, and view toggles
+- **OrdersTable**: Enhanced table with progress bars, lead time, and payment status
+- **OrdersInbox**: Accept/decline interface for brand-submitted POs
+- **OrderDetailsHeader**: Sticky header for order details with progress and actions
+- **OrderOverview**: Mission control overview with milestones and metrics
+
+##### **Shared Components**
+- **PaymentBadge**: Shows payment status with x/y paid format and overdue indicators
+- **LeadTimeBadge**: Displays lead time status with ahead/on track/behind indicators
+- **ProgressBar**: Visual progress tracking with completion percentages
+- **RYGStatus**: Red/Yellow/Green status indicators for various metrics
+
+##### **Detail Components**
+- **OrderVariantsTable**: Variant grouping with expandable items (placeholder)
+- **OrderMaterials**: Materials tracking and consumption (placeholder)
+- **OrderFinancials**: Financial tracking and profitability (placeholder)
+- **OrderQA**: Quality assurance and defects tracking (placeholder)
+- **OrderMessaging**: Order-specific messaging (placeholder)
+- **OrderTimelineAudit**: Timeline and audit trail (placeholder)
+
+#### **Enhanced Orders Page:**
+
+##### **Tab-Based Navigation**
+- **Inbox**: Brand-submitted POs requiring accept/decline decisions
+- **Active**: Orders currently in production (accepted + in_production)
+- **All Orders**: Complete order list with advanced filtering
+- **Import**: CSV/Excel import functionality (placeholder)
+
+##### **Advanced Filtering System**
+- **Search**: Full-text search across PO numbers and notes
+- **Status Filtering**: Filter by any order status
+- **Brand/Factory Filtering**: Filter by specific brands or factories
+- **Date Range**: Filter by submission date range
+- **View Modes**: Table, Cards, and Kanban views
+
+##### **Inbox Functionality**
+- **Accept Orders**: Workflow selection, start date, and notes
+- **Decline Orders**: Reason selection and detailed notes
+- **Order Preview**: Complete order details before decision
+- **Audit Trail**: All accept/decline actions logged
+
+#### **Order Details Page:**
+
+##### **Mission Control Interface**
+- **Sticky Header**: Order code, client, status, progress, and lead time
+- **Tab Navigation**: Overview, Items, Materials, Financials, QA, Messaging, Timeline
+- **Context Panel**: Quick actions and order summary
+- **Real-time Updates**: Progress and status updates
+
+##### **Overview Tab**
+- **Milestones**: Visual progress through order lifecycle
+- **Throughput**: Items completed, daily completion rates
+- **Bottlenecks**: Stage analysis with average times
+- **People**: Order owner, team, brand, factory assignments
+- **Dates**: Complete timeline of key dates
+- **Notes & Attachments**: Order documentation
+
+#### **Technical Implementation:**
+
+##### **Component Architecture**
+- **Modular Design**: Reusable components with clear interfaces
+- **Type Safety**: Comprehensive TypeScript interfaces
+- **State Management**: Proper state handling for complex workflows
+- **Performance**: Optimized queries and efficient rendering
+
+##### **Enhanced Features**
+- **Real-time Progress**: Live progress tracking and updates
+- **Financial Calculations**: Automated cost and margin calculations
+- **Status Transitions**: Proper workflow state management
+- **Audit Compliance**: Complete action logging and tracking
+
+#### **User Experience Improvements:**
+
+##### **Production-Focused Design**
+- **Mission Control Layout**: Dashboard-style interface for order management
+- **Quick Actions**: One-click access to common operations
+- **Visual Indicators**: Clear status and progress visualization
+- **Responsive Design**: Works across all device sizes
+
+##### **Workflow Efficiency**
+- **Streamlined Inbox**: Quick accept/decline decisions
+- **Progress Tracking**: Real-time visibility into order progress
+- **Financial Visibility**: Clear cost and profitability tracking
+- **Quality Management**: Defect tracking and quality metrics
+
+#### **Future Enhancements:**
+- **Kanban Board**: Drag-and-drop order management
+- **Advanced Analytics**: Production metrics and forecasting
+- **Automated Workflows**: Rule-based order processing
+- **Integration**: ERP and accounting system integration
+- **Mobile App**: Native mobile order management
+- **Real-time Notifications**: Live updates and alerts
+
+---
+
+## [Latest] - Items Page Status Management Overhaul
+**Date**: December 2024
+**Type**: Admin Interface Enhancement
+
+### 🎯 **Items Page Status Management Overhaul**
+
+#### **Overview:**
+Completely overhauled the admin items page to provide comprehensive status management with one-touch filtering for flagged, defective, and other critical item states. This creates a mission control-style interface for managing production items with enhanced visibility and quick actions.
+
+#### **Enhanced Status System:**
+
+##### **New Status Types**
+- **Flagged**: Items flagged for attention with orange styling and flag icon
+- **Defective**: Items marked as defective with red styling and alert triangle icon
+- **Active**: Items currently in production (existing, enhanced)
+- **Paused**: Items temporarily paused (existing, enhanced)
+- **Completed**: Successfully completed items (existing, enhanced)
+- **Error**: Items with errors (existing, enhanced)
+
+##### **Status Configuration**
+- **Visual Indicators**: Color-coded badges with icons and dot indicators
+- **Consistent Styling**: Unified color scheme across all status types
+- **Quick Recognition**: Immediate visual identification of item states
+
+#### **One-Touch Filtering System:**
+
+##### **Quick View Cards**
+- **All Items**: Complete overview of all production items
+- **Active**: Items currently in production workflow
+- **Flagged**: Items requiring immediate attention
+- **Defective**: Items with quality issues
+- **Paused**: Items temporarily on hold
+- **Completed**: Successfully finished items
+
+##### **Interactive Interface**
+- **Visual Selection**: Active view highlighted with black background
+- **Hover Effects**: Smooth transitions and visual feedback
+- **Responsive Grid**: Adapts to different screen sizes (2 columns on mobile, 6 on desktop)
+
+#### **Enhanced Table Functionality:**
+
+##### **Quick Actions**
+- **Flag/Unflag**: One-click flagging and unflagging of items
+- **Mark Defective**: Quick marking of items as defective
+- **Status Recovery**: Easy restoration of items to active status
+- **Contextual Buttons**: Actions appear based on current item status
+
+##### **Smart Filtering**
+- **Status-Based Views**: Each view automatically filters by status
+- **Hidden Status Filter**: Status filter hidden when using status-specific views
+- **Preserved Functionality**: All existing filtering and sorting capabilities maintained
+
+#### **Improved User Experience:**
+
+##### **Visual Hierarchy**
+- **Clear Headers**: Each view has descriptive header with icon and description
+- **Status Indicators**: Prominent badges for flagged and defective items
+- **Action Context**: View-specific action buttons and information
+
+##### **Efficient Workflow**
+- **Quick Access**: One-click access to specific item states
+- **Bulk Operations**: Easy identification of items requiring attention
+- **Status Management**: Streamlined status changes with immediate feedback
+
+#### **Technical Implementation:**
+
+##### **Component Architecture**
+- **Props Interface**: Enhanced ItemsTable with configurable props
+- **Status Configuration**: Centralized status styling and behavior
+- **Conditional Rendering**: Smart display of filters and actions based on context
+- **State Management**: Proper state handling for status changes
+
+##### **Enhanced Features**
+- **Quick Status Changes**: Inline status modification with visual feedback
+- **Status Validation**: Proper status transitions and validation
+- **Audit Trail**: Status change tracking (prepared for backend integration)
+- **Performance**: Optimized rendering for large item lists
+
+#### **Admin Workflow Improvements:**
+
+##### **Mission Control Interface**
+- **Dashboard-Style Layout**: Overview cards for quick status assessment
+- **Action-Oriented Design**: Focus on actionable items and quick responses
+- **Status Visibility**: Clear visibility of all item states at a glance
+- **Efficient Navigation**: Quick switching between different item views
+
+##### **Quality Management**
+- **Defective Item Tracking**: Dedicated view for quality issues
+- **Flagged Item Management**: Centralized attention for flagged items
+- **Status Recovery**: Easy restoration of items to normal workflow
+- **Audit Capability**: Track status changes and reasons
+
+#### **Future Enhancements:**
+- **Bulk Status Changes**: Multi-select and bulk status updates
+- **Status History**: Detailed audit trail of status changes
+- **Automated Alerts**: Notifications for status changes
+- **Advanced Filtering**: Date ranges, custom status combinations
+
+---
+
+## [Previous] - Disco Mobile Mission Control Integration
+**Date**: December 2024
+**Type**: Mobile Interface Enhancement
+
+### 🎯 **Disco Mobile Mission Control Implementation**
+
+#### **Overview:**
+Successfully integrated key mission control components into the disco mobile interface, creating a streamlined, touch-friendly experience optimized for less tech-savvy users while maintaining powerful functionality.
+
+#### **Mobile-Optimized Components Created:**
+
+##### **Core Mobile Components**
+- **DiscoItemHeader**: Simplified sticky header with live SLA tracking, touch-friendly buttons, and essential item information
+- **DiscoEventFeed**: Streamlined event feed showing only the most recent 5 events with expandable view
+- **DiscoNotesPanel**: Touch-optimized notes interface with inline composer and simplified note types
+- **DiscoQRCard**: Mobile-friendly QR display with quick download and test scan functionality
+- **DiscoMessaging**: Simplified messaging with automatic QR link attachment and team messaging
+- **DiscoAttachments**: Mobile-optimized file upload with camera integration and touch-friendly controls
+
+#### **Mobile-First Design Features:**
+
+##### **Touch Optimization**
+- **Larger Touch Targets**: All buttons and interactive elements sized for comfortable thumb navigation
+- **Simplified Navigation**: 4-tab interface (Overview, Actions, Notes, Files) instead of complex multi-tab layout
+- **Swipe-Friendly**: Horizontal scrolling and touch gestures optimized for mobile interaction
+- **Thumb-Reachable**: All primary actions positioned within easy thumb reach
+
+##### **Simplified UX for Less Tech-Savvy Users**
+- **Clear Visual Hierarchy**: Large, readable text with high contrast for easy scanning
+- **Intuitive Icons**: Universal icons (camera, upload, message) that require minimal training
+- **Progressive Disclosure**: Complex features hidden behind simple interfaces
+- **One-Tap Actions**: Most common actions available with single tap
+- **Visual Feedback**: Clear loading states, success messages, and error handling
+
+##### **Performance Optimizations**
+- **Reduced Data Load**: Only essential information displayed by default
+- **Lazy Loading**: Components load only when needed
+- **Optimized Images**: Compressed thumbnails and responsive image handling
+- **Minimal Network Calls**: Efficient data fetching with smart caching
+
+#### **Disco Integration Features:**
+
+##### **Tabbed Interface**
+- **Overview Tab**: Event feed + QR code for quick status check
+- **Actions Tab**: Required and optional actions with clear visual distinction
+- **Notes Tab**: Notes panel + messaging in one unified interface
+- **Files Tab**: Attachment management with camera integration
+
+##### **Enhanced Functionality**
+- **Live SLA Tracking**: Real-time progress monitoring with color-coded status
+- **Quick Actions**: Flag issues, send messages, add notes with minimal taps
+- **File Management**: Camera integration for photo capture, drag-drop for files
+- **QR Integration**: Test scan functionality and automatic QR link attachment to messages
+
+##### **Mobile-Specific Features**
+- **Camera Integration**: Direct photo capture for attachments and quality checks
+- **Offline Capability**: Basic functionality works without constant connectivity
+- **Battery Optimization**: Efficient timers and reduced background processing
+- **Accessibility**: High contrast, large text, and screen reader support
+
+#### **Technical Implementation:**
+
+##### **Component Architecture**
+- **Modular Design**: Each component is self-contained with clear interfaces
+- **Props Interface**: Consistent prop patterns across all disco components
+- **Event Handling**: Standardized event handlers for all user interactions
+- **State Management**: Local state with optimistic updates for better UX
+
+##### **Mobile Optimization**
+- **Responsive Design**: Adapts to different screen sizes and orientations
+- **Touch Events**: Proper touch event handling with fallbacks
+- **Viewport Management**: Optimized for mobile viewport constraints
+- **Performance Monitoring**: Efficient re-renders and memory management
+
+#### **User Experience Improvements:**
+
+##### **Speed & Efficiency**
+- **Quick Access**: Essential information visible at a glance
+- **Reduced Cognitive Load**: Simplified interfaces with clear action paths
+- **Error Prevention**: Smart defaults and validation to prevent mistakes
+- **Contextual Help**: Inline guidance for complex actions
+
+##### **Accessibility & Usability**
+- **High Contrast**: Easy-to-read text and controls in various lighting conditions
+- **Large Touch Targets**: 44px minimum touch targets for reliable interaction
+- **Clear Feedback**: Immediate visual and haptic feedback for all actions
+- **Consistent Patterns**: Familiar interaction patterns throughout the interface
+
+#### **Integration with Existing Disco System:**
+- **Seamless Integration**: Works with existing disco header, footer, and navigation
+- **Data Compatibility**: Uses existing Convex data structures and API patterns
+- **Team Context**: Maintains team selection and context throughout the interface
+- **QR Scanner Integration**: Leverages existing disco QR scanning functionality
+
+#### **Future Enhancements:**
+- **Voice Commands**: Voice input for hands-free operation
+- **Offline Sync**: Full offline capability with background synchronization
+- **Advanced Camera**: Barcode scanning and image recognition
+- **Push Notifications**: Real-time alerts for important events
+- **Analytics**: Usage tracking for continuous improvement
+
+### **Files Modified:**
+- `components/disco/disco-item-header.tsx` - Mobile-optimized sticky header
+- `components/disco/disco-event-feed.tsx` - Simplified event feed
+- `components/disco/disco-notes-panel.tsx` - Touch-friendly notes interface
+- `components/disco/disco-qr-card.tsx` - Mobile QR display and actions
+- `components/disco/disco-messaging.tsx` - Simplified messaging with QR integration
+- `components/disco/disco-attachments.tsx` - Mobile file management with camera
+- `components/disco/index.ts` - Updated exports for new components
+- `app/disco/items/[itemId]/page.tsx` - Integrated new components with tabbed interface
+
+### **Impact:**
+This integration transforms the disco interface from a basic item viewer into a powerful, mobile-optimized mission control system that empowers less tech-savvy users to efficiently manage items while maintaining all the advanced functionality of the desktop version.
+
+---
+
+## [Previous] - Mission Control: Complete Item Details Overhaul
+**Date**: December 2024
+**Type**: Major Feature Implementation
+
+### 🎯 **Mission Control Interface Implementation**
+
+#### **Overview:**
+Completely overhauled the item details page into a comprehensive mission control interface with live timers, SLA tracking, real-time data, and dense-but-clean operator console layout.
+
+#### **New Mission Control Components:**
+
+##### **Core Interface Components**
+- **ItemHeader**: Sticky header with item identity, live SLA/RAG bar, and primary actions
+- **EventFeed**: Live event feed with expandable details and real-time updates
+- **NotesPanel**: Inline note composer with Enter-to-save functionality
+- **LocationHistory**: Current location and movement history with timestamps
+- **QRCard**: QR code display with download options and test scan functionality
+- **MetaTable**: Key/value metadata with inline edit controls
+- **OrderSnapshot**: Order information with progress tracking
+- **StageTimeline**: Vertical timeline with live "time in current stage" ticker
+- **WorkflowMiniMap**: Workflow visualization with admin advance functionality
+- **CostsPanel**: Labor cost tracking with live margin calculations
+- **MessagingThread**: Contextual messaging with team/recipient selection
+- **AttachmentsPanel**: File upload with drag-drop and preview functionality
+- **AuditLog**: Filterable audit trail with search and type filtering
+
+#### **Mission Control Features:**
+
+##### **Live Timers & SLA Tracking**
+- **Real-time SLA Bar**: Live elapsed/time-left display with R/Y/G status
+- **Stage Timers**: Live "time in current stage" ticker updating every second
+- **Progress Tracking**: Visual progress indicators with percentage completion
+- **SLA Alerts**: Color-coded status (green <80%, yellow 80-100%, red >100%)
+
+##### **Operational Controls**
+- **Admin Advance**: Workflow stage advancement with reason logging
+- **Quick Actions**: QR print, PDF export, deep link sharing
+- **Metadata Editing**: Inline editing with popover controls
+- **Cost Overrides**: Labor rate and quoted labor adjustments with audit trails
+
+##### **Real-time Data**
+- **Live Updates**: Subscription-based real-time data updates
+- **Event Streaming**: Live event feed with expandable details
+- **Status Monitoring**: Real-time status changes and notifications
+- **Optimistic UI**: Immediate feedback with rollback on errors
+
+#### **Tabbed Interface:**
+
+##### **Overview Tab (Default)**
+- **Left Column**: Event feed, notes panel, location history
+- **Right Column**: QR card, metadata table, order snapshot
+- **Responsive Layout**: 2/3 content, 1/3 context on desktop
+
+##### **Timeline Tab**
+- **Stage Timeline**: Vertical timeline with durations and live ticker
+- **Time Tracking**: Per-stage duration calculations
+- **Visual Progress**: Stage completion indicators
+
+##### **Workflow Tab**
+- **Mini-Map**: Workflow visualization with current stage highlighting
+- **Next Transitions**: Available stage transitions with advance buttons
+- **Admin Controls**: Stage advancement with confirmation dialogs
+
+##### **Costs Tab**
+- **Cost-to-Date**: Live labor cost calculations
+- **Margin Tracking**: Real-time profit/loss calculations
+- **Override Controls**: Inline editing with audit trails
+
+##### **Messaging Tab**
+- **Contextual Thread**: Item-specific messaging thread
+- **Team Selection**: Recipient selection with team/user options
+- **QR Integration**: Automatic QR link attachment
+
+##### **Attachments Tab**
+- **Drag-Drop Upload**: File upload with drag-and-drop support
+- **File Management**: Upload, preview, download, delete functionality
+- **Type Support**: Images, PDFs, documents with preview
+
+##### **Audit Tab**
+- **Filterable Log**: Search and filter by type, user, date
+- **Detailed Entries**: Full audit trail with metadata
+- **Export Ready**: Structured data for compliance reporting
+
+#### **Technical Implementation:**
+
+##### **Component Architecture**
+```typescript
+// Modular component structure
+components/items/
+├── item-header.tsx          // Sticky header with SLA bar
+├── event-feed.tsx           // Live event stream
+├── notes-panel.tsx          // Note composer
+├── location-history.tsx     // Movement tracking
+├── qr-card.tsx              // QR display & download
+├── meta-table.tsx           // Metadata editor
+├── order-snapshot.tsx       // Order information
+├── stage-timeline.tsx       // Timeline visualization
+├── workflow-mini-map.tsx    // Workflow controls
+├── costs-panel.tsx          // Cost tracking
+├── messaging-thread.tsx     // Messaging interface
+├── attachments-panel.tsx    // File management
+├── audit-log.tsx            // Audit trail
+└── index.ts                 // Component exports
+```
+
+##### **Real-time Features**
+- **Live Timers**: `requestAnimationFrame` for smooth updates
+- **SLA Calculations**: Real-time progress tracking
+- **Event Streaming**: WebSocket/Convex subscription model
+- **Optimistic Updates**: Immediate UI feedback
+
+##### **Responsive Design**
+- **Desktop Layout**: 2/3 content, 1/3 context columns
+- **Mobile Layout**: Stacked single-column layout
+- **Sticky Header**: Always-visible item identity and controls
+- **Tab Navigation**: Horizontal tabs with smooth transitions
+
+#### **User Experience:**
+
+##### **Operator Console Design**
+- **Fast & Legible**: Minimal chrome, strong hierarchy
+- **Zero Clutter**: Clean, focused interface
+- **High Contrast**: Easy-to-read text and controls
+- **Modular Layout**: Lego-brick style component system
+
+##### **Keyboard Shortcuts**
+- **E**: Add note
+- **P**: Print QR
+- **X**: Export PDF
+- **A**: Admin advance
+- **Enter**: Save note/message
+- **Shift+Enter**: New line
+
+##### **Visual Polish**
+- **Motion**: Subtle slide/fade transitions
+- **Count-up Animations**: Smooth metric updates
+- **Loading States**: Skeleton loaders and progress indicators
+- **Toast Notifications**: Success/error feedback
+
+#### **Data Integration:**
+
+##### **Mock Data System**
+- **Realistic Data**: Comprehensive mock data for all components
+- **Time-based Events**: Realistic timestamps and durations
+- **User Interactions**: Simulated user actions and responses
+- **API Ready**: Structured for easy backend integration
+
+##### **Convex Integration**
+- **Existing APIs**: Preserved all existing adapter signatures
+- **Non-breaking**: Added optional methods with * suffix
+- **Real-time Queries**: Leveraged Convex real-time capabilities
+- **Optimistic Updates**: Immediate UI feedback with rollback
+
+#### **Performance Optimizations:**
+
+##### **Lazy Loading**
+- **Tab Content**: Non-visible tabs load on demand
+- **Component Loading**: Heavy components load progressively
+- **Image Optimization**: Efficient image loading and caching
+- **Debounced Inputs**: Metadata edits debounced for performance
+
+##### **Memory Management**
+- **Event Cleanup**: Proper cleanup of timers and subscriptions
+- **Component Unmounting**: Clean state management
+- **Efficient Rendering**: Optimized re-render cycles
+- **Resource Management**: Proper file handle cleanup
+
+#### **Accessibility Features:**
+
+##### **Keyboard Navigation**
+- **Tab Navigation**: Full keyboard accessibility
+- **Shortcut Keys**: Comprehensive keyboard shortcuts
+- **Focus Management**: Proper focus indicators and management
+- **Screen Reader**: ARIA labels and semantic HTML
+
+##### **Visual Accessibility**
+- **High Contrast**: Strong contrast ratios
+- **Color Independence**: Status not dependent on color alone
+- **Text Scaling**: Responsive to browser text scaling
+- **Motion Reduction**: Respects user motion preferences
+
+#### **Future Enhancements:**
+
+##### **Planned Features**
+- **Advanced Analytics**: Detailed performance metrics
+- **Custom Dashboards**: User-configurable layouts
+- **Integration APIs**: Third-party system integrations
+- **Mobile App**: Native mobile application
+
+##### **Scalability Considerations**
+- **Component Library**: Reusable component system
+- **Plugin Architecture**: Extensible component system
+- **Performance Monitoring**: Real-time performance tracking
+- **User Feedback**: Built-in feedback collection
+
+---
+
 ## [Latest] - Fixed Widget Height Consistency & Drag-and-Drop Persistence
 **Date**: December 2024
 **Type**: Bug Fixes & UX Improvements
