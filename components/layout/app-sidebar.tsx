@@ -37,7 +37,8 @@ import {
     Truck,
     Warehouse,
     WashingMachine,
-    Archive
+    Archive,
+    Package2
 } from "lucide-react"
 import { SignedIn, UserButton } from "@/components/ui/mock-auth-components"
 import { FeatureManager } from "./feature-manager"
@@ -63,6 +64,7 @@ const coreNavigation = [
       { name: "Home", href: "/app", icon: Home, exact: true },
       { name: "Workflows", href: "/app/workflows", icon: Workflow },
       { name: "Items", href: "/app/items", icon: Package },
+      { name: "Materials", href: "/materials", icon: Package2 },
       { name: "Teams", href: "/app/teams", icon: Users },
       { name: "Customers", href: "/app/customers", icon: Users2 },
       { name: "Orders", href: "/app/orders", icon: FileText },

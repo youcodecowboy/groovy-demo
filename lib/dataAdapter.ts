@@ -6,10 +6,48 @@ import type {
     AdvanceItemInput,
     GetItemsParams,
 } from "@/types/schema"
+import type {
+    Material,
+    MaterialLot,
+    MaterialMovement,
+    PriceHistory,
+    InventorySnapshot,
+    LabelTemplate,
+    MaterialFilters,
+    ReceiveMaterialForm,
+    IssueMaterialForm,
+    TransferMaterialForm,
+    AdjustMaterialForm,
+    MaterialSettings,
+    Location,
+    MovementType,
+    Unit,
+    MaterialCategory,
+    UnitConversion,
+    MaterialAttributeTemplate,
+    DEFAULT_UNIT_CONVERSIONS,
+    DEFAULT_CATEGORY_TEMPLATES,
+} from "@/types/materials"
 
 // Mock data storage
 let workflows: Workflow[] = []
 let items: Item[] = []
+
+// Materials mock data storage
+let materials: Material[] = []
+let materialLots: MaterialLot[] = []
+let materialMovements: MaterialMovement[] = []
+let priceHistory: PriceHistory[] = []
+let locations: Location[] = []
+let labelTemplates: LabelTemplate[] = []
+let unitConversions: UnitConversion[] = [...DEFAULT_UNIT_CONVERSIONS]
+let materialSettings: MaterialSettings = {
+  defaultCurrency: 'USD',
+  valuationMethod: 'FIFO',
+  lowStockThreshold: 10,
+  enableLotTracking: true,
+  requireReceiptPO: false,
+}
 
 // Demo workflow data with enhanced actions
 const demoWorkflow: Workflow = {
@@ -572,5 +610,451 @@ export const dataAdapter = {
 
   async resetDemoData(): Promise<void> {
     initializeDemoData()
+  },
+
+  // Materials methods (non-breaking additions)
+  async getMaterials(filters?: MaterialFilters): Promise<Material[]> {
+    let filtered = [...materials]
+    
+    if (filters?.search) {
+      const search = filters.search.toLowerCase()
+      filtered = filtered.filter(m => 
+        m.name.toLowerCase().includes(search) || 
+        m.code.toLowerCase().includes(search)
+      )
+    }
+    
+    if (filters?.category?.length) {
+      filtered = filtered.filter(m => filters.category!.includes(m.category))
+    }
+    
+    if (filters?.archived !== undefined) {
+      filtered = filtered.filter(m => !!m.archived === filters.archived)
+    }
+    
+    return filtered
+  },
+
+  async getMaterial(id: string): Promise<Material | null> {
+    return materials.find(m => m.id === id) || null
+  },
+
+  async createMaterial(input: Omit<Material, 'id' | 'createdAt' | 'updatedAt'>): Promise<Material> {
+    const material: Material = {
+      ...input,
+      id: `mat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    }
+    materials.push(material)
+    return material
+  },
+
+  async updateMaterial(id: string, updates: Partial<Material>): Promise<Material | null> {
+    const index = materials.findIndex(m => m.id === id)
+    if (index === -1) return null
+    
+    materials[index] = {
+      ...materials[index],
+      ...updates,
+      updatedAt: Date.now(),
+    }
+    return materials[index]
+  },
+
+  async deleteMaterial(id: string): Promise<boolean> {
+    const index = materials.findIndex(m => m.id === id)
+    if (index === -1) return false
+    
+    materials.splice(index, 1)
+    return true
+  },
+
+  async getMaterialLots(materialId: string): Promise<MaterialLot[]> {
+    return materialLots.filter(lot => lot.materialId === materialId)
+  },
+
+  async getMaterialLot(id: string): Promise<MaterialLot | null> {
+    return materialLots.find(lot => lot.id === id) || null
+  },
+
+  async receiveMaterial(input: ReceiveMaterialForm): Promise<MaterialLot> {
+    const lot: MaterialLot = {
+      id: `lot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      materialId: input.materialId,
+      lotCode: input.lotCode,
+      color: input.color,
+      widthMm: input.widthMm,
+      receivedAt: Date.now(),
+      unitCost: input.unitCost,
+      quantity: input.quantity,
+      locationId: input.locationId,
+      supplierId: input.supplierId,
+      poId: input.poId,
+      notes: input.notes,
+    }
+    
+    materialLots.push(lot)
+    
+    // Record movement
+    const movement: MaterialMovement = {
+      id: `mov_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      at: Date.now(),
+      type: 'RECEIPT',
+      materialId: input.materialId,
+      lotId: lot.id,
+      toLocationId: input.locationId,
+      quantity: input.quantity,
+      unitCost: input.unitCost,
+      actor: 'system', // In real app, would be current user
+    }
+    
+    materialMovements.push(movement)
+    
+    // Add price history
+    const price: PriceHistory = {
+      id: `price_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      materialId: input.materialId,
+      at: Date.now(),
+      unitCost: input.unitCost,
+      currency: materialSettings.defaultCurrency,
+      source: input.poId ? 'PO' : 'Manual',
+    }
+    
+    priceHistory.push(price)
+    
+    return lot
+  },
+
+  async issueMaterial(input: IssueMaterialForm): Promise<MaterialMovement | null> {
+    const material = await this.getMaterial(input.materialId)
+    if (!material) return null
+    
+    // Find lot to issue from (FIFO if not specified)
+    let lotToIssue: MaterialLot | undefined
+    if (input.lotId) {
+      lotToIssue = materialLots.find(lot => lot.id === input.lotId)
+    } else {
+      // FIFO - oldest lot with available quantity
+      const availableLots = materialLots
+        .filter(lot => lot.materialId === input.materialId && lot.quantity > 0)
+        .sort((a, b) => a.receivedAt - b.receivedAt)
+      lotToIssue = availableLots[0]
+    }
+    
+    if (!lotToIssue || lotToIssue.quantity < input.quantity) {
+      throw new Error('Insufficient inventory')
+    }
+    
+    // Update lot quantity
+    lotToIssue.quantity -= input.quantity
+    
+    // Record movement
+    const movement: MaterialMovement = {
+      id: `mov_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      at: Date.now(),
+      type: 'ISSUE',
+      materialId: input.materialId,
+      lotId: lotToIssue.id,
+      fromLocationId: lotToIssue.locationId,
+      quantity: input.quantity,
+      unitCost: lotToIssue.unitCost,
+      orderId: input.orderId,
+      itemId: input.itemId,
+      reason: input.reason,
+      actor: 'system',
+    }
+    
+    materialMovements.push(movement)
+    return movement
+  },
+
+  async transferMaterial(input: TransferMaterialForm): Promise<MaterialMovement | null> {
+    const lot = materialLots.find(l => l.id === input.lotId)
+    if (!lot || lot.quantity < input.quantity) return null
+    
+    // Update lot location if transferring entire lot
+    if (lot.quantity === input.quantity) {
+      lot.locationId = input.toLocationId
+    } else {
+      // Split lot - create new lot at destination
+      const newLot: MaterialLot = {
+        ...lot,
+        id: `lot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        quantity: input.quantity,
+        locationId: input.toLocationId,
+      }
+      materialLots.push(newLot)
+      lot.quantity -= input.quantity
+    }
+    
+    const movement: MaterialMovement = {
+      id: `mov_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      at: Date.now(),
+      type: 'TRANSFER',
+      materialId: input.materialId,
+      lotId: input.lotId,
+      fromLocationId: input.fromLocationId,
+      toLocationId: input.toLocationId,
+      quantity: input.quantity,
+      reason: input.reason,
+      actor: 'system',
+    }
+    
+    materialMovements.push(movement)
+    return movement
+  },
+
+  async adjustMaterial(input: AdjustMaterialForm): Promise<MaterialMovement | null> {
+    const lot = materialLots.find(l => l.id === input.lotId)
+    if (!lot) return null
+    
+    lot.quantity += input.quantity // can be negative
+    if (lot.quantity < 0) lot.quantity = 0
+    
+    const movement: MaterialMovement = {
+      id: `mov_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      at: Date.now(),
+      type: 'ADJUST',
+      materialId: input.materialId,
+      lotId: input.lotId,
+      quantity: input.quantity,
+      reason: input.reason,
+      actor: 'system',
+    }
+    
+    materialMovements.push(movement)
+    return movement
+  },
+
+  async getMaterialMovements(materialId: string): Promise<MaterialMovement[]> {
+    return materialMovements
+      .filter(mov => mov.materialId === materialId)
+      .sort((a, b) => b.at - a.at)
+  },
+
+  async getInventorySnapshot(materialId: string): Promise<InventorySnapshot> {
+    const lots = materialLots.filter(lot => lot.materialId === materialId)
+    const onHand = lots.reduce((sum, lot) => sum + lot.quantity, 0)
+    const value = lots.reduce((sum, lot) => sum + (lot.quantity * lot.unitCost), 0)
+    
+    return {
+      materialId,
+      onHand,
+      onOrder: 0, // TODO: calculate from POs
+      allocated: 0, // TODO: calculate from order allocations
+      available: onHand,
+      value,
+      currency: materialSettings.defaultCurrency,
+    }
+  },
+
+  async getPriceHistory(materialId: string): Promise<PriceHistory[]> {
+    return priceHistory
+      .filter(p => p.materialId === materialId)
+      .sort((a, b) => b.at - a.at)
+  },
+
+  async getLocations(): Promise<Location[]> {
+    return [...locations]
+  },
+
+  async createLocation(input: Omit<Location, 'id'>): Promise<Location> {
+    const location: Location = {
+      ...input,
+      id: `loc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    }
+    locations.push(location)
+    return location
+  },
+
+  async getLabelTemplates(): Promise<LabelTemplate[]> {
+    return [...labelTemplates]
+  },
+
+  async createLabelTemplate(input: Omit<LabelTemplate, 'id'>): Promise<LabelTemplate> {
+    const template: LabelTemplate = {
+      ...input,
+      id: `tpl_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    }
+    labelTemplates.push(template)
+    return template
+  },
+
+  async getUnitConversions(): Promise<UnitConversion[]> {
+    return [...unitConversions]
+  },
+
+  async updateUnitConversions(conversions: UnitConversion[]): Promise<void> {
+    unitConversions = [...conversions]
+  },
+
+  async getMaterialSettings(): Promise<MaterialSettings> {
+    return { ...materialSettings }
+  },
+
+  async updateMaterialSettings(settings: Partial<MaterialSettings>): Promise<MaterialSettings> {
+    materialSettings = { ...materialSettings, ...settings }
+    return materialSettings
+  },
+
+  async getCategoryTemplates(): Promise<typeof DEFAULT_CATEGORY_TEMPLATES> {
+    return DEFAULT_CATEGORY_TEMPLATES
+  },
+
+  // Initialize demo materials data
+  async initializeMaterialsDemo(): Promise<void> {
+    // Clear existing data
+    materials = []
+    materialLots = []
+    materialMovements = []
+    priceHistory = []
+    locations = []
+    labelTemplates = []
+    
+    // Create demo locations
+    locations.push(
+      { id: 'loc-1', name: 'WH-A1-BIN01', kind: 'bin' },
+      { id: 'loc-2', name: 'WH-A1-BIN02', kind: 'bin' },
+      { id: 'loc-3', name: 'WH-B2-RACK01', kind: 'rack' },
+      { id: 'loc-4', name: 'FLOOR-CUTTING', kind: 'room' }
+    )
+    
+    // Create demo materials
+    const demoMaterials: Omit<Material, 'id' | 'createdAt' | 'updatedAt'>[] = [
+      {
+        code: 'FAB-001',
+        name: 'Cotton Canvas - Natural',
+        category: 'fabric',
+        defaultUnit: 'm',
+        attributes: {
+          composition: '100% Cotton',
+          gsm: 280,
+          weave: 'Plain',
+          stretch: false,
+          washable: true
+        },
+        reorderPoint: 50,
+      },
+      {
+        code: 'FAB-002',
+        name: 'Denim - Indigo Blue',
+        category: 'fabric',
+        defaultUnit: 'm',
+        attributes: {
+          composition: '98% Cotton, 2% Elastane',
+          gsm: 320,
+          weave: 'Twill',
+          stretch: true,
+          washable: true
+        },
+        reorderPoint: 30,
+      },
+      {
+        code: 'TRM-001',
+        name: 'Metal Buttons - Silver',
+        category: 'trim',
+        defaultUnit: 'pc',
+        attributes: {
+          size: '15mm',
+          material: 'Brass',
+          finish: 'Brushed',
+          colorfast: true
+        },
+        reorderPoint: 500,
+      },
+      {
+        code: 'ACC-001',
+        name: 'YKK Zipper - Black',
+        category: 'accessory',
+        defaultUnit: 'pc',
+        attributes: {
+          type: 'Zipper',
+          size: '12"',
+          material: 'Nylon',
+          color: 'Black'
+        },
+        reorderPoint: 100,
+      }
+    ]
+    
+    // Create materials and lots
+    for (const materialData of demoMaterials) {
+      const material = await this.createMaterial(materialData)
+      
+      // Create some demo lots
+      if (material.category === 'fabric') {
+        await this.receiveMaterial({
+          materialId: material.id,
+          quantity: 100,
+          unitCost: 15.50,
+          unit: 'm',
+          lotCode: 'LOT-2024-001',
+          color: material.name.includes('Indigo') ? 'Indigo Blue' : 'Natural',
+          widthMm: 1500,
+          locationId: 'loc-1',
+        })
+        
+        await this.receiveMaterial({
+          materialId: material.id,
+          quantity: 75,
+          unitCost: 16.20,
+          unit: 'm',
+          lotCode: 'LOT-2024-002',
+          color: material.name.includes('Indigo') ? 'Indigo Blue' : 'Natural',
+          widthMm: 1500,
+          locationId: 'loc-2',
+        })
+      } else {
+        await this.receiveMaterial({
+          materialId: material.id,
+          quantity: material.category === 'trim' ? 1000 : 200,
+          unitCost: material.category === 'trim' ? 0.25 : 2.50,
+          unit: material.defaultUnit,
+          lotCode: 'LOT-2024-001',
+          locationId: 'loc-3',
+        })
+      }
+    }
+    
+    // Create some demo movements (issues)
+    const fabricMaterial = materials.find(m => m.code === 'FAB-001')
+    if (fabricMaterial) {
+      await this.issueMaterial({
+        materialId: fabricMaterial.id,
+        quantity: 25,
+        unit: 'm',
+        reason: 'Production Order #PO-001',
+      })
+    }
+    
+    // Create demo label templates
+    labelTemplates.push(
+      {
+        id: 'tpl-material',
+        name: 'Material Label',
+        scope: 'material',
+        widthMm: 50,
+        heightMm: 30,
+        fields: [
+          { key: 'code', x: 5, y: 5, font: 12 },
+          { key: 'name', x: 5, y: 15, font: 10 },
+          { key: 'qr', x: 35, y: 5, font: 0 }
+        ]
+      },
+      {
+        id: 'tpl-lot',
+        name: 'Lot Label',
+        scope: 'lot',
+        widthMm: 60,
+        heightMm: 40,
+        fields: [
+          { key: 'lotCode', x: 5, y: 5, font: 12 },
+          { key: 'materialName', x: 5, y: 15, font: 10 },
+          { key: 'quantity', x: 5, y: 25, font: 10 },
+          { key: 'qr', x: 40, y: 10, font: 0 }
+        ]
+      }
+    )
   },
 }
