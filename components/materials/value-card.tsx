@@ -9,6 +9,8 @@ interface ValueCardProps {
   value: number
   currency?: string
   subtitle?: string
+  showAsQuantity?: boolean
+  unit?: string
   trend?: {
     value: number
     isPositive: boolean
@@ -23,6 +25,8 @@ export default function ValueCard({
   value,
   currency = 'USD',
   subtitle,
+  showAsQuantity = false,
+  unit,
   trend,
   icon: Icon,
   className
@@ -36,7 +40,10 @@ export default function ValueCard({
               {title}
             </p>
             <p className="text-2xl font-bold">
-              {formatCurrency(value, currency)}
+              {showAsQuantity && unit 
+                ? `${value.toFixed(1)} ${unit}` 
+                : formatCurrency(value, currency)
+              }
             </p>
             {subtitle && (
               <p className="text-xs text-muted-foreground mt-1">
