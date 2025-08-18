@@ -25,6 +25,8 @@ import type {
     MaterialCategory,
     UnitConversion,
     MaterialAttributeTemplate,
+} from "@/types/materials"
+import {
     DEFAULT_UNIT_CONVERSIONS,
     DEFAULT_CATEGORY_TEMPLATES,
 } from "@/types/materials"
