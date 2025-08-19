@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,7 +9,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
-import { Receipt, Download, Eye, Plus, Trash2, Building2, User } from "lucide-react"
+import { Receipt, Download, Eye, Plus, Trash2, Building2, User, Printer } from "lucide-react"
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
 
 interface InvoiceItem {
   id: string
@@ -41,6 +43,7 @@ interface InvoiceData {
 }
 
 export default function InvoiceGeneratorPage() {
+  const printRef = useRef<HTMLDivElement>(null)
   const [invoice, setInvoice] = useState<InvoiceData>({
     invoiceNumber: `INV-${Date.now().toString().slice(-6)}`,
     date: new Date().toISOString().split('T')[0],
@@ -111,14 +114,38 @@ export default function InvoiceGeneratorPage() {
   const taxAmount = subtotal * (invoice.taxRate / 100)
   const total = subtotal + taxAmount
 
-  const generatePDF = () => {
-    // Mock PDF generation
-    const link = document.createElement('a')
-    link.href = 'data:application/pdf;base64,JVBERi0xLjQKJdPr6eEKMSAwIG9iago...'
-    link.download = `${invoice.invoiceNumber}.pdf`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+  const generatePDF = async () => {
+    if (!printRef.current) return
+
+    try {
+      const element = printRef.current
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      })
+
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth()
+      const pdfHeight = pdf.internal.pageSize.getHeight()
+      const imgWidth = canvas.width
+      const imgHeight = canvas.height
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight)
+      const imgX = (pdfWidth - imgWidth * ratio) / 2
+      const imgY = 0
+
+      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio)
+      pdf.save(`${invoice.invoiceNumber || 'invoice'}.pdf`)
+    } catch (error) {
+      console.error('Error generating PDF:', error)
+    }
+  }
+
+  const printInvoice = () => {
+    window.print()
   }
 
   return (
