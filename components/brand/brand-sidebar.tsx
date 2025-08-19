@@ -55,7 +55,8 @@ import {
     PackageCheck,
     Percent,
     Zap,
-    Cog
+    Cog,
+    Leaf
 } from "lucide-react"
 import { SignedIn, UserButton } from "@/components/ui/mock-auth-components"
 import { BrandHeaderBell } from "./brand-header-bell"
@@ -87,21 +88,21 @@ const tabNavigation = {
     { name: "Packing List", href: "/brand/packing-list-generator", icon: ClipboardList, exact: false, color: "text-orange-600" },
     { name: "Compliance Docs", href: "/brand/compliance-templates", icon: FileCheck, exact: false, color: "text-purple-600" },
     
-    // Label & Inventory Tools
+    // Label & QR Tools
     { name: "QR Generator", href: "/brand/qr-generator", icon: QrCode, exact: false, color: "text-indigo-600" },
     { name: "Barcode Generator", href: "/brand/barcode-generator", icon: Barcode, exact: false, color: "text-emerald-600" },
     { name: "Label Generator", href: "/brand/label-generator", icon: Tag, exact: false, color: "text-amber-600" },
     { name: "Batch Generator", href: "/brand/batch-generator", icon: Hash, exact: false, color: "text-slate-600" },
-    { name: "Inventory Labels", href: "/brand/inventory-labels", icon: PackageCheck, exact: false, color: "text-teal-600" },
     
-    // Calculators & Estimators
-    { name: "Material Calculator", href: "/brand/material-calculator", icon: Calculator, exact: false, color: "text-red-600" },
+    // Brand Calculators
     { name: "Cost Estimator", href: "/brand/cost-estimator", icon: DollarSign, exact: false, color: "text-green-600" },
-    { name: "Stock Reconciliation", href: "/brand/stock-reconciliation", icon: TrendingUp, exact: false, color: "text-blue-600" },
     { name: "Profit Calculator", href: "/brand/profit-calculator", icon: Calculator, exact: false, color: "text-emerald-600" },
-    { name: "On-Time Calculator", href: "/brand/on-time-calculator", icon: Clock, exact: false, color: "text-orange-600" },
-    { name: "Labor Estimator", href: "/brand/labor-estimator", icon: Users, exact: false, color: "text-purple-600" },
-    { name: "Defect Calculator", href: "/brand/defect-calculator", icon: AlertTriangle, exact: false, color: "text-red-600" },
+    { name: "Lead Time Calculator", href: "/brand/lead-time-calculator", icon: Clock, exact: false, color: "text-orange-600" },
+    { name: "Quality Metrics", href: "/brand/quality-metrics", icon: TrendingUp, exact: false, color: "text-blue-600" },
+    
+    // Placeholders for future brand tools
+    { name: "Brand Analytics", href: "/brand/analytics", icon: BarChart3, exact: false, color: "text-purple-600" },
+    { name: "Sustainability Tracker", href: "/brand/sustainability", icon: Leaf, exact: false, color: "text-green-600" },
   ]
 }
 
