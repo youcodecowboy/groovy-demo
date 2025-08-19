@@ -139,8 +139,8 @@ export function BrandFactories() {
     return 'Available'
   }
 
-  const uniqueRegions = Array.from(new Set(factories.map(f => f.location.split(',')[1]?.trim() || f.location.split(',')[0]?.trim() || f.location)))
-  const uniqueSpecialties = Array.from(new Set(factories.flatMap(f => f.capabilities)))
+  const uniqueRegions = Array.from(new Set(factories.map(f => f.location.split(',')[1]?.trim() || f.location.split(',')[0]?.trim() || f.location))).filter(region => region && region.trim() !== '')
+  const uniqueSpecialties = Array.from(new Set(factories.flatMap(f => f.capabilities))).filter(specialty => specialty && specialty.trim() !== '')
 
   if (loading) {
     return (

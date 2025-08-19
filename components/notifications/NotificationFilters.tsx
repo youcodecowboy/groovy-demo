@@ -37,7 +37,7 @@ const notificationKinds = [
 ]
 
 const severityOptions = [
-  { value: "", label: "All Severities" },
+  { value: "all", label: "All Severities" },
   { value: "low", label: "Low" },
   { value: "medium", label: "Medium" },
   { value: "high", label: "High" },
@@ -78,7 +78,7 @@ export function NotificationFilters({ filters, onFiltersChange }: NotificationFi
     onFiltersChange({
       search: "",
       kinds: [],
-      severity: "",
+      severity: "all",
       unreadOnly: false,
       dateFrom: undefined,
       dateTo: undefined,
