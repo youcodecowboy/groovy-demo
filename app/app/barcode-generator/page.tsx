@@ -1,13 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Barcode, Download, Copy, Plus, Trash2, RefreshCw, Settings } from "lucide-react"
+import { Barcode, Download, Copy, Plus, Trash2, RefreshCw, Settings, Image, FilePdf } from "lucide-react"
+import JsBarcode from 'jsbarcode'
+import { toast } from "sonner"
 
 interface BarcodeData {
   id: string
@@ -23,6 +25,7 @@ interface BarcodeData {
   lineColor: string
   label: string
   timestamp: string
+  dataUrl?: string
 }
 
 interface BatchBarcodeConfig {
@@ -56,6 +59,7 @@ export default function BarcodeGeneratorPage() {
     type: 'CODE128'
   })
   const [activeTab, setActiveTab] = useState<'single' | 'batch'>('single')
+  const [isGenerating, setIsGenerating] = useState(false)
 
   const getBarcodeTypeDescription = (type: string) => {
     switch (type) {
@@ -113,48 +117,68 @@ export default function BarcodeGeneratorPage() {
     }
   }
 
-  const generateSingleBarcode = () => {
-    if (!currentBarcode.content) return
+  const generateBarcodeDataURL = async (barcode: BarcodeData): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      try {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'))
+          return
+        }
+
+        // Set canvas size
+        const totalWidth = barcode.content.length * 10 * barcode.width + 40
+        const totalHeight = barcode.height + (barcode.displayValue ? barcode.fontSize + 10 : 0) + 20
+        
+        canvas.width = totalWidth
+        canvas.height = totalHeight
+
+        // Fill background
+        ctx.fillStyle = barcode.background
+        ctx.fillRect(0, 0, totalWidth, totalHeight)
+
+        // Generate barcode using jsbarcode
+        JsBarcode(canvas, barcode.content, {
+          format: barcode.type,
+          width: barcode.width,
+          height: barcode.height,
+          displayValue: barcode.displayValue,
+          fontSize: barcode.fontSize,
+          textAlign: barcode.textAlign,
+          textPosition: barcode.textPosition,
+          background: barcode.background,
+          lineColor: barcode.lineColor,
+          margin: 10
+        })
+
+        resolve(canvas.toDataURL('image/png'))
+      } catch (error) {
+        reject(error)
+      }
+    })
+  }
+
+  const generateSingleBarcode = async () => {
+    if (!currentBarcode.content) {
+      toast.error("Please enter content for the barcode")
+      return
+    }
 
     const content = generateCheckDigit(currentBarcode.content, currentBarcode.type || 'CODE128')
     
     if (!validateBarcodeContent(content, currentBarcode.type || 'CODE128')) {
-      alert(`Invalid content for ${currentBarcode.type} barcode format`)
+      toast.error(`Invalid content for ${currentBarcode.type} barcode format`)
       return
     }
 
-    const newBarcode: BarcodeData = {
-      id: Date.now().toString(),
-      content,
-      type: currentBarcode.type || 'CODE128',
-      width: currentBarcode.width || 2,
-      height: currentBarcode.height || 100,
-      displayValue: currentBarcode.displayValue ?? true,
-      fontSize: currentBarcode.fontSize || 20,
-      textAlign: currentBarcode.textAlign || 'center',
-      textPosition: currentBarcode.textPosition || 'bottom',
-      background: currentBarcode.background || '#FFFFFF',
-      lineColor: currentBarcode.lineColor || '#000000',
-      label: currentBarcode.label || '',
-      timestamp: new Date().toISOString()
-    }
-
-    setBarcodes(prev => [newBarcode, ...prev])
-    setCurrentBarcode(prev => ({ ...prev, content: '', label: '' }))
-  }
-
-  const generateBatchBarcodes = () => {
-    const newBarcodes: BarcodeData[] = []
-    
-    for (let i = 0; i < batchConfig.count; i++) {
-      const number = batchConfig.startNumber + i
-      const paddedNumber = number.toString().padStart(batchConfig.numberLength, '0')
-      const content = `${batchConfig.prefix}${paddedNumber}`
-      
-      const barcode: BarcodeData = {
-        id: `batch-${Date.now()}-${i}`,
+    setIsGenerating(true)
+    try {
+      const newBarcode: BarcodeData = {
+        id: Date.now().toString(),
         content,
-        type: batchConfig.type,
+        type: currentBarcode.type || 'CODE128',
         width: currentBarcode.width || 2,
         height: currentBarcode.height || 100,
         displayValue: currentBarcode.displayValue ?? true,
@@ -163,101 +187,133 @@ export default function BarcodeGeneratorPage() {
         textPosition: currentBarcode.textPosition || 'bottom',
         background: currentBarcode.background || '#FFFFFF',
         lineColor: currentBarcode.lineColor || '#000000',
-        label: content,
+        label: currentBarcode.label || '',
         timestamp: new Date().toISOString()
       }
 
-      newBarcodes.push(barcode)
+      // Generate actual barcode data URL
+      const dataUrl = await generateBarcodeDataURL(newBarcode)
+      newBarcode.dataUrl = dataUrl
+
+      setBarcodes(prev => [newBarcode, ...prev])
+      setCurrentBarcode(prev => ({ ...prev, content: '', label: '' }))
+      toast.success("Barcode generated successfully!")
+    } catch (error) {
+      toast.error("Failed to generate barcode")
+      console.error(error)
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const generateBatchBarcodes = async () => {
+    if (batchConfig.count > 50) {
+      toast.error("Batch size cannot exceed 50 barcodes")
+      return
     }
 
-    setBarcodes(prev => [...newBarcodes, ...prev])
+    setIsGenerating(true)
+    try {
+      const newBarcodes: BarcodeData[] = []
+      
+      for (let i = 0; i < batchConfig.count; i++) {
+        const number = batchConfig.startNumber + i
+        const paddedNumber = number.toString().padStart(batchConfig.numberLength, '0')
+        const content = `${batchConfig.prefix}${paddedNumber}`
+        
+        const barcode: BarcodeData = {
+          id: `batch-${Date.now()}-${i}`,
+          content,
+          type: batchConfig.type,
+          width: currentBarcode.width || 2,
+          height: currentBarcode.height || 100,
+          displayValue: currentBarcode.displayValue ?? true,
+          fontSize: currentBarcode.fontSize || 20,
+          textAlign: currentBarcode.textAlign || 'center',
+          textPosition: currentBarcode.textPosition || 'bottom',
+          background: currentBarcode.background || '#FFFFFF',
+          lineColor: currentBarcode.lineColor || '#000000',
+          label: content,
+          timestamp: new Date().toISOString()
+        }
+
+        // Generate actual barcode data URL
+        const dataUrl = await generateBarcodeDataURL(barcode)
+        barcode.dataUrl = dataUrl
+
+        newBarcodes.push(barcode)
+      }
+
+      setBarcodes(prev => [...newBarcodes, ...prev])
+      toast.success(`Generated ${batchConfig.count} barcodes successfully!`)
+    } catch (error) {
+      toast.error("Failed to generate batch barcodes")
+      console.error(error)
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   const deleteBarcode = (id: string) => {
     setBarcodes(prev => prev.filter(barcode => barcode.id !== id))
+    toast.success("Barcode deleted")
   }
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-  }
-
-  const downloadBarcode = (barcode: BarcodeData) => {
-    // Mock download - generate a simple barcode representation
-    const canvas = document.createElement('canvas')
-    const totalWidth = barcode.content.length * 10 * barcode.width + 40
-    const totalHeight = barcode.height + (barcode.displayValue ? barcode.fontSize + 10 : 0) + 20
-    
-    canvas.width = totalWidth
-    canvas.height = totalHeight
-    const ctx = canvas.getContext('2d')
-    
-    if (ctx) {
-      // Fill background
-      ctx.fillStyle = barcode.background
-      ctx.fillRect(0, 0, totalWidth, totalHeight)
-      
-      // Draw barcode bars
-      ctx.fillStyle = barcode.lineColor
-      const barWidth = barcode.width
-      const barHeight = barcode.height
-      const startX = 20
-      const startY = 10
-      
-      // Simple barcode pattern
-      for (let i = 0; i < barcode.content.length * 10; i++) {
-        if (i % 2 === 0) { // Draw bar
-          ctx.fillRect(startX + i * barWidth, startY, barWidth, barHeight)
-        }
-      }
-      
-      // Draw text if enabled
-      if (barcode.displayValue) {
-        ctx.fillStyle = barcode.lineColor
-        ctx.font = `${barcode.fontSize}px monospace`
-        ctx.textAlign = barcode.textAlign
-        
-        const textX = barcode.textAlign === 'center' ? totalWidth / 2 : 
-                     barcode.textAlign === 'right' ? totalWidth - 20 : 20
-        const textY = barcode.textPosition === 'bottom' ? 
-                     startY + barHeight + barcode.fontSize + 5 : 
-                     startY - 5
-        
-        ctx.fillText(barcode.content, textX, textY)
-      }
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success("Content copied to clipboard")
+    } catch (error) {
+      toast.error("Failed to copy to clipboard")
     }
-
-    // Download the canvas as image
-    canvas.toBlob(blob => {
-      if (blob) {
-        const url = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = `barcode-${barcode.label || barcode.content}.png`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        URL.revokeObjectURL(url)
-      }
-    })
   }
 
-  const downloadAllBarcodes = () => {
-    barcodes.forEach((barcode, index) => {
-      setTimeout(() => downloadBarcode(barcode), index * 100)
-    })
+  const downloadBarcode = async (barcode: BarcodeData) => {
+    try {
+      if (!barcode.dataUrl) {
+        toast.error("Barcode data not available")
+        return
+      }
+
+      const link = document.createElement('a')
+      link.href = barcode.dataUrl
+      link.download = `barcode-${barcode.label || barcode.content.substring(0, 10)}.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      toast.success("Barcode downloaded successfully")
+    } catch (error) {
+      toast.error("Failed to download barcode")
+      console.error(error)
+    }
+  }
+
+  const downloadAllBarcodes = async () => {
+    try {
+      for (let i = 0; i < barcodes.length; i++) {
+        await downloadBarcode(barcodes[i])
+        // Small delay to prevent browser from blocking multiple downloads
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+      toast.success("All barcodes downloaded")
+    } catch (error) {
+      toast.error("Failed to download some barcodes")
+    }
   }
 
   const clearAllBarcodes = () => {
     setBarcodes([])
+    toast.success("All barcodes cleared")
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
+    <div className="container mx-auto p-6 max-w-7xl space-y-6">
       <div className="flex items-center gap-3 mb-6">
         <Barcode className="h-8 w-8 text-emerald-600" />
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Barcode Generator</h1>
-          <p className="text-gray-600">Generate various barcode formats for inventory and product tracking</p>
+          <p className="text-gray-600">Generate barcodes for inventory, products, and tracking systems</p>
         </div>
       </div>
 
@@ -266,7 +322,7 @@ export default function BarcodeGeneratorPage() {
         <div className="lg:col-span-1 space-y-6">
           {/* Mode Selection */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-4">
               <CardTitle>Generation Mode</CardTitle>
             </CardHeader>
             <CardContent>
@@ -276,14 +332,14 @@ export default function BarcodeGeneratorPage() {
                   onClick={() => setActiveTab('single')}
                   className="flex-1"
                 >
-                  Single
+                  Single Barcode
                 </Button>
                 <Button
                   variant={activeTab === 'batch' ? 'default' : 'outline'}
                   onClick={() => setActiveTab('batch')}
                   className="flex-1"
                 >
-                  Batch
+                  Batch Barcode
                 </Button>
               </div>
             </CardContent>
@@ -291,7 +347,7 @@ export default function BarcodeGeneratorPage() {
 
           {/* Barcode Configuration */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2">
                 <Settings className="h-5 w-5" />
                 Barcode Settings
@@ -302,18 +358,18 @@ export default function BarcodeGeneratorPage() {
                 <Label htmlFor="type">Barcode Type</Label>
                 <Select 
                   value={currentBarcode.type} 
-                  onValueChange={(value: any) => setCurrentBarcode(prev => ({ ...prev, type: value }))}
+                  onValueChange={(value: 'CODE128' | 'EAN13' | 'UPC' | 'CODE39' | 'ITF14' | 'MSI') => setCurrentBarcode(prev => ({ ...prev, type: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="CODE128">Code 128</SelectItem>
-                    <SelectItem value="EAN13">EAN-13</SelectItem>
-                    <SelectItem value="UPC">UPC-A</SelectItem>
-                    <SelectItem value="CODE39">Code 39</SelectItem>
-                    <SelectItem value="ITF14">ITF-14</SelectItem>
-                    <SelectItem value="MSI">MSI</SelectItem>
+                    <SelectItem value="CODE128">CODE128 - Alphanumeric</SelectItem>
+                    <SelectItem value="EAN13">EAN13 - 13-digit</SelectItem>
+                    <SelectItem value="UPC">UPC - 12-digit</SelectItem>
+                    <SelectItem value="CODE39">CODE39 - Alphanumeric</SelectItem>
+                    <SelectItem value="ITF14">ITF14 - 14-digit</SelectItem>
+                    <SelectItem value="MSI">MSI - Numeric</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-gray-500 mt-1">
@@ -328,7 +384,7 @@ export default function BarcodeGeneratorPage() {
                     id="width"
                     type="number"
                     min="1"
-                    max="5"
+                    max="10"
                     value={currentBarcode.width}
                     onChange={(e) => setCurrentBarcode(prev => ({ ...prev, width: Number(e.target.value) }))}
                   />
@@ -339,72 +395,41 @@ export default function BarcodeGeneratorPage() {
                     id="height"
                     type="number"
                     min="50"
-                    max="200"
+                    max="300"
                     value={currentBarcode.height}
                     onChange={(e) => setCurrentBarcode(prev => ({ ...prev, height: Number(e.target.value) }))}
                   />
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="displayValue"
-                  checked={currentBarcode.displayValue}
-                  onChange={(e) => setCurrentBarcode(prev => ({ ...prev, displayValue: e.target.checked }))}
-                />
-                <Label htmlFor="displayValue">Display Value</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="fontSize">Font Size</Label>
+                  <Input
+                    id="fontSize"
+                    type="number"
+                    min="10"
+                    max="50"
+                    value={currentBarcode.fontSize}
+                    onChange={(e) => setCurrentBarcode(prev => ({ ...prev, fontSize: Number(e.target.value) }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="textPosition">Text Position</Label>
+                  <Select 
+                    value={currentBarcode.textPosition} 
+                    onValueChange={(value: 'bottom' | 'top') => setCurrentBarcode(prev => ({ ...prev, textPosition: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="bottom">Bottom</SelectItem>
+                      <SelectItem value="top">Top</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-
-              {currentBarcode.displayValue && (
-                <>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label htmlFor="fontSize">Font Size</Label>
-                      <Input
-                        id="fontSize"
-                        type="number"
-                        min="10"
-                        max="40"
-                        value={currentBarcode.fontSize}
-                        onChange={(e) => setCurrentBarcode(prev => ({ ...prev, fontSize: Number(e.target.value) }))}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="textAlign">Text Align</Label>
-                      <Select 
-                        value={currentBarcode.textAlign} 
-                        onValueChange={(value: any) => setCurrentBarcode(prev => ({ ...prev, textAlign: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="left">Left</SelectItem>
-                          <SelectItem value="center">Center</SelectItem>
-                          <SelectItem value="right">Right</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="textPosition">Text Position</Label>
-                    <Select 
-                      value={currentBarcode.textPosition} 
-                      onValueChange={(value: any) => setCurrentBarcode(prev => ({ ...prev, textPosition: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="bottom">Bottom</SelectItem>
-                        <SelectItem value="top">Top</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
-              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -442,13 +467,24 @@ export default function BarcodeGeneratorPage() {
                   </div>
                 </div>
               </div>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="displayValue"
+                  checked={currentBarcode.displayValue}
+                  onChange={(e) => setCurrentBarcode(prev => ({ ...prev, displayValue: e.target.checked }))}
+                  className="rounded"
+                />
+                <Label htmlFor="displayValue">Display Text Value</Label>
+              </div>
             </CardContent>
           </Card>
 
           {/* Content Input */}
           {activeTab === 'single' ? (
             <Card>
-              <CardHeader>
+              <CardHeader className="pb-4">
                 <CardTitle>Barcode Content</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -456,13 +492,10 @@ export default function BarcodeGeneratorPage() {
                   <Label htmlFor="content">Content/Data</Label>
                   <Input
                     id="content"
-                    placeholder="Enter barcode data"
+                    placeholder="Enter barcode content"
                     value={currentBarcode.content}
                     onChange={(e) => setCurrentBarcode(prev => ({ ...prev, content: e.target.value }))}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Format requirements: {getBarcodeTypeDescription(currentBarcode.type || 'CODE128')}
-                  </p>
                 </div>
                 <div>
                   <Label htmlFor="label">Label (Optional)</Label>
@@ -473,34 +506,26 @@ export default function BarcodeGeneratorPage() {
                     onChange={(e) => setCurrentBarcode(prev => ({ ...prev, label: e.target.value }))}
                   />
                 </div>
-                <Button onClick={generateSingleBarcode} className="w-full" disabled={!currentBarcode.content}>
-                  <Barcode className="h-4 w-4 mr-2" />
-                  Generate Barcode
+                <Button 
+                  onClick={generateSingleBarcode} 
+                  className="w-full" 
+                  disabled={!currentBarcode.content || isGenerating}
+                >
+                  {isGenerating ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Barcode className="h-4 w-4 mr-2" />
+                  )}
+                  {isGenerating ? 'Generating...' : 'Generate Barcode'}
                 </Button>
               </CardContent>
             </Card>
           ) : (
             <Card>
-              <CardHeader>
+              <CardHeader className="pb-4">
                 <CardTitle>Batch Configuration</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="batchType">Barcode Type</Label>
-                  <Select 
-                    value={batchConfig.type} 
-                    onValueChange={(value: any) => setBatchConfig(prev => ({ ...prev, type: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="CODE128">Code 128</SelectItem>
-                      <SelectItem value="CODE39">Code 39</SelectItem>
-                      <SelectItem value="MSI">MSI</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
                 <div>
                   <Label htmlFor="prefix">Prefix</Label>
                   <Input
@@ -527,7 +552,7 @@ export default function BarcodeGeneratorPage() {
                       id="count"
                       type="number"
                       min="1"
-                      max="100"
+                      max="50"
                       value={batchConfig.count}
                       onChange={(e) => setBatchConfig(prev => ({ ...prev, count: Number(e.target.value) }))}
                     />
@@ -543,13 +568,18 @@ export default function BarcodeGeneratorPage() {
                     value={batchConfig.numberLength}
                     onChange={(e) => setBatchConfig(prev => ({ ...prev, numberLength: Number(e.target.value) }))}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Numbers will be padded with zeros
-                  </p>
                 </div>
-                <Button onClick={generateBatchBarcodes} className="w-full">
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Generate {batchConfig.count} Barcodes
+                <Button 
+                  onClick={generateBatchBarcodes} 
+                  className="w-full"
+                  disabled={isGenerating}
+                >
+                  {isGenerating ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  {isGenerating ? 'Generating...' : `Generate ${batchConfig.count} Barcodes`}
                 </Button>
               </CardContent>
             </Card>
@@ -560,13 +590,13 @@ export default function BarcodeGeneratorPage() {
         <div className="lg:col-span-2 space-y-6">
           {/* Header Controls */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-4">
               <CardTitle className="flex items-center justify-between">
                 <span>Generated Barcodes ({barcodes.length})</span>
                 <div className="flex gap-2">
                   {barcodes.length > 0 && (
                     <>
-                      <Button variant="outline" onClick={downloadAllBarcodes}>
+                      <Button variant="outline" onClick={downloadAllBarcodes} disabled={isGenerating}>
                         <Download className="h-4 w-4 mr-2" />
                         Download All
                       </Button>
@@ -583,14 +613,14 @@ export default function BarcodeGeneratorPage() {
 
           {/* Barcodes Grid */}
           {barcodes.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {barcodes.map((barcode) => (
-                <Card key={barcode.id}>
+                <Card key={barcode.id} className="overflow-hidden">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-sm truncate">
-                          {barcode.label || barcode.content}
+                          {barcode.label || barcode.content.substring(0, 20)}
                         </div>
                         <div className="text-xs text-gray-500">
                           {new Date(barcode.timestamp).toLocaleString()}
@@ -607,30 +637,27 @@ export default function BarcodeGeneratorPage() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {/* Barcode Preview */}
-                    <div className="flex justify-center">
-                      <div 
-                        className="border rounded p-2"
-                        style={{ backgroundColor: barcode.background }}
-                      >
-                        <div className="flex justify-center mb-2">
-                          <Barcode 
-                            className="h-12 w-32" 
-                            style={{ color: barcode.lineColor }}
-                          />
+                    <div className="flex justify-center p-4 bg-gray-50 rounded-lg">
+                      {barcode.dataUrl ? (
+                        <img 
+                          src={barcode.dataUrl} 
+                          alt={`Barcode for ${barcode.label || barcode.content}`}
+                          className="max-w-full max-h-[120px] object-contain"
+                        />
+                      ) : (
+                        <div 
+                          className="border rounded bg-white p-4"
+                          style={{
+                            width: '200px',
+                            height: '120px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <Barcode className="h-16 w-16 text-gray-400" />
                         </div>
-                        {barcode.displayValue && (
-                          <div 
-                            className="text-center font-mono"
-                            style={{ 
-                              fontSize: `${Math.min(barcode.fontSize, 14)}px`,
-                              color: barcode.lineColor,
-                              textAlign: barcode.textAlign
-                            }}
-                          >
-                            {barcode.content}
-                          </div>
-                        )}
-                      </div>
+                      )}
                     </div>
 
                     {/* Barcode Details */}
@@ -642,25 +669,25 @@ export default function BarcodeGeneratorPage() {
                         </Badge>
                       </div>
                       <div className="flex justify-between text-xs">
-                        <span className="text-gray-500">Dimensions:</span>
-                        <span>{barcode.width}x{barcode.height}px</span>
+                        <span className="text-gray-500">Size:</span>
+                        <span>{barcode.width}px × {barcode.height}px</span>
                       </div>
                       <div className="flex justify-between text-xs">
-                        <span className="text-gray-500">Display Value:</span>
+                        <span className="text-gray-500">Text:</span>
                         <span>{barcode.displayValue ? 'Yes' : 'No'}</span>
                       </div>
                     </div>
 
-                    {/* Content */}
+                    {/* Content Preview */}
                     <div>
                       <div className="text-xs text-gray-500 mb-1">Content:</div>
-                      <div className="text-xs bg-gray-50 p-2 rounded border font-mono">
+                      <div className="text-xs bg-gray-50 p-2 rounded border max-h-20 overflow-y-auto break-all">
                         {barcode.content}
                       </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 pt-2">
                       <Button
                         variant="outline"
                         size="sm"
