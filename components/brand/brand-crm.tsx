@@ -33,7 +33,19 @@ import {
   Calendar,
   DollarSign,
   TrendingUp,
-  Users2
+  Users2,
+  Filter,
+  MoreHorizontal,
+  Star,
+  Clock,
+  CheckCircle,
+  AlertTriangle,
+  Target,
+  UserPlus,
+  FileText,
+  MessageSquare,
+  ExternalLink,
+  Settings
 } from 'lucide-react'
 import { format, subDays } from 'date-fns'
 
@@ -50,8 +62,11 @@ interface CRMContact {
   lastContact: Date
   totalOrders: number
   totalValue: number
-  status: 'prospect' | 'active' | 'inactive' | 'churned'
-  source: 'referral' | 'website' | 'trade_show' | 'cold_outreach' | 'partnership'
+  status: 'prospect' | 'lead' | 'qualified' | 'negotiation' | 'active' | 'inactive' | 'churned'
+  source: 'referral' | 'website' | 'trade_show' | 'cold_outreach' | 'partnership' | 'social_media'
+  priority: 'low' | 'medium' | 'high' | 'urgent'
+  nextFollowUp?: Date
+  notes: string[]
 }
 
 const mockContacts: CRMContact[] = [
@@ -68,7 +83,10 @@ const mockContacts: CRMContact[] = [
     totalOrders: 12,
     totalValue: 450000,
     status: 'active',
-    source: 'trade_show'
+    source: 'trade_show',
+    priority: 'high',
+    nextFollowUp: subDays(new Date(), 2),
+    notes: ['Interested in sustainable materials', 'Prefers weekly updates']
   },
   {
     id: 'contact-2',
@@ -82,8 +100,11 @@ const mockContacts: CRMContact[] = [
     lastContact: subDays(new Date(), 7),
     totalOrders: 8,
     totalValue: 180000,
-    status: 'active',
-    source: 'website'
+    status: 'qualified',
+    source: 'website',
+    priority: 'medium',
+    nextFollowUp: subDays(new Date(), 5),
+    notes: ['Looking for new suppliers', 'Budget conscious']
   },
   {
     id: 'contact-3',
@@ -96,8 +117,11 @@ const mockContacts: CRMContact[] = [
     lastContact: subDays(new Date(), 14),
     totalOrders: 5,
     totalValue: 75000,
-    status: 'prospect',
-    source: 'referral'
+    status: 'lead',
+    source: 'referral',
+    priority: 'high',
+    nextFollowUp: subDays(new Date(), 1),
+    notes: ['Very interested in our eco-friendly options', 'Decision maker']
   },
   {
     id: 'contact-4',
@@ -111,8 +135,11 @@ const mockContacts: CRMContact[] = [
     lastContact: subDays(new Date(), 21),
     totalOrders: 15,
     totalValue: 890000,
-    status: 'active',
-    source: 'partnership'
+    status: 'negotiation',
+    source: 'partnership',
+    priority: 'urgent',
+    nextFollowUp: new Date(),
+    notes: ['Contract negotiation in progress', 'High-value opportunity']
   },
   {
     id: 'contact-5',
@@ -126,15 +153,45 @@ const mockContacts: CRMContact[] = [
     totalOrders: 2,
     totalValue: 25000,
     status: 'inactive',
-    source: 'cold_outreach'
+    source: 'cold_outreach',
+    priority: 'low',
+    notes: ['Limited budget', 'May re-engage later']
+  },
+  {
+    id: 'contact-6',
+    name: 'Alex Morgan',
+    company: 'Athletic Wear Pro',
+    role: 'Sourcing Specialist',
+    email: 'alex@athleticwearpro.com',
+    phone: '+1-555-0127',
+    location: 'Denver, CO',
+    tags: ['Athletic', 'Performance', 'Bulk Orders'],
+    lastContact: subDays(new Date(), 1),
+    totalOrders: 0,
+    totalValue: 0,
+    status: 'prospect',
+    source: 'social_media',
+    priority: 'medium',
+    nextFollowUp: subDays(new Date(), 7),
+    notes: ['New prospect', 'Interested in performance materials']
   }
 ]
 
 const statusColors = {
-  prospect: 'bg-blue-100 text-blue-800',
+  prospect: 'bg-gray-100 text-gray-800',
+  lead: 'bg-blue-100 text-blue-800',
+  qualified: 'bg-purple-100 text-purple-800',
+  negotiation: 'bg-orange-100 text-orange-800',
   active: 'bg-green-100 text-green-800',
   inactive: 'bg-yellow-100 text-yellow-800',
   churned: 'bg-red-100 text-red-800'
+}
+
+const priorityColors = {
+  low: 'bg-gray-100 text-gray-800',
+  medium: 'bg-blue-100 text-blue-800',
+  high: 'bg-orange-100 text-orange-800',
+  urgent: 'bg-red-100 text-red-800'
 }
 
 const sourceLabels = {
@@ -142,16 +199,26 @@ const sourceLabels = {
   website: 'Website',
   trade_show: 'Trade Show',
   cold_outreach: 'Cold Outreach',
-  partnership: 'Partnership'
+  partnership: 'Partnership',
+  social_media: 'Social Media'
 }
+
+const pipelineStages = [
+  { key: 'prospect', label: 'Prospects', color: 'bg-gray-100', count: 0 },
+  { key: 'lead', label: 'Leads', color: 'bg-blue-100', count: 0 },
+  { key: 'qualified', label: 'Qualified', color: 'bg-purple-100', count: 0 },
+  { key: 'negotiation', label: 'Negotiation', color: 'bg-orange-100', count: 0 },
+  { key: 'active', label: 'Active', color: 'bg-green-100', count: 0 }
+]
 
 export function BrandCRM() {
   const [contacts, setContacts] = useState<CRMContact[]>(mockContacts)
   const [filteredContacts, setFilteredContacts] = useState<CRMContact[]>(mockContacts)
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [viewMode, setViewMode] = useState<'pipeline' | 'list'>('pipeline')
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [sourceFilter, setSourceFilter] = useState<string>('all')
+  const [priorityFilter, setPriorityFilter] = useState<string>('all')
 
   useEffect(() => {
     let filtered = [...contacts]
@@ -173,13 +240,45 @@ export function BrandCRM() {
       filtered = filtered.filter(contact => contact.source === sourceFilter)
     }
 
+    if (priorityFilter !== 'all') {
+      filtered = filtered.filter(contact => contact.priority === priorityFilter)
+    }
+
     setFilteredContacts(filtered)
-  }, [contacts, searchTerm, statusFilter, sourceFilter])
+  }, [contacts, searchTerm, statusFilter, sourceFilter, priorityFilter])
 
   const totalContacts = contacts.length
   const activeContacts = contacts.filter(c => c.status === 'active').length
   const totalValue = contacts.reduce((sum, contact) => sum + contact.totalValue, 0)
   const avgOrderValue = totalValue / contacts.reduce((sum, contact) => sum + contact.totalOrders, 0) || 0
+  const urgentFollowUps = contacts.filter(c => c.nextFollowUp && c.nextFollowUp <= new Date()).length
+
+  // Calculate pipeline counts
+  const pipelineData = pipelineStages.map(stage => ({
+    ...stage,
+    count: contacts.filter(c => c.status === stage.key).length
+  }))
+
+  const getPriorityIcon = (priority: string) => {
+    switch (priority) {
+      case 'urgent': return AlertTriangle
+      case 'high': return Target
+      case 'medium': return Clock
+      case 'low': return CheckCircle
+      default: return Clock
+    }
+  }
+
+  const getFollowUpStatus = (contact: CRMContact) => {
+    if (!contact.nextFollowUp) return null
+    const now = new Date()
+    const diffDays = Math.ceil((contact.nextFollowUp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    
+    if (diffDays < 0) return { status: 'overdue', text: 'Overdue', color: 'text-red-600' }
+    if (diffDays === 0) return { status: 'today', text: 'Today', color: 'text-orange-600' }
+    if (diffDays <= 3) return { status: 'soon', text: `${diffDays} days`, color: 'text-yellow-600' }
+    return { status: 'upcoming', text: `${diffDays} days`, color: 'text-gray-600' }
+  }
 
   return (
     <div className="space-y-6">
@@ -187,14 +286,18 @@ export function BrandCRM() {
         <h1 className="text-3xl font-bold">CRM</h1>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm">
-            <Plus className="h-4 w-4 mr-2" />
+            <Settings className="h-4 w-4 mr-2" />
+            Settings
+          </Button>
+          <Button>
+            <UserPlus className="h-4 w-4 mr-2" />
             Add Contact
           </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -242,7 +345,91 @@ export function BrandCRM() {
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Follow-ups Due</p>
+                <p className="text-2xl font-bold">{urgentFollowUps}</p>
+              </div>
+              <Clock className="h-8 w-8 text-red-500" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Pipeline View */}
+      {viewMode === 'pipeline' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Sales Pipeline</h2>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Total Value:</span>
+              <span className="text-lg font-bold text-green-600">
+                ${(totalValue / 1000).toFixed(0)}K
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            {pipelineData.map((stage) => (
+              <Card key={stage.key} className="min-h-96">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-medium">{stage.label}</CardTitle>
+                    <Badge variant="secondary" className="text-xs">
+                      {stage.count}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {filteredContacts
+                    .filter(contact => contact.status === stage.key)
+                    .map((contact) => (
+                      <Card key={contact.id} className="p-3 hover:shadow-md transition-shadow cursor-pointer">
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{contact.name}</p>
+                              <p className="text-xs text-gray-600 truncate">{contact.company}</p>
+                            </div>
+                            <Badge className={`text-xs ${priorityColors[contact.priority]}`}>
+                              {contact.priority}
+                            </Badge>
+                          </div>
+                          
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-gray-600">
+                              ${(contact.totalValue / 1000).toFixed(0)}K
+                            </span>
+                            {contact.nextFollowUp && (
+                              <span className={getFollowUpStatus(contact)?.color}>
+                                {getFollowUpStatus(contact)?.text}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                              <Mail className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                              <MessageSquare className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                              <MoreHorizontal className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Filters and View Toggle */}
       <Card>
@@ -266,10 +453,9 @@ export function BrandCRM() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="prospect">Prospect</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="churned">Churned</SelectItem>
+                {Object.entries(statusColors).map(([value, color]) => (
+                  <SelectItem key={value} value={value}>{value.charAt(0).toUpperCase() + value.slice(1)}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
@@ -285,14 +471,26 @@ export function BrandCRM() {
               </SelectContent>
             </Select>
 
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Priorities</SelectItem>
+                {Object.entries(priorityColors).map(([value, color]) => (
+                  <SelectItem key={value} value={value}>{value.charAt(0).toUpperCase() + value.slice(1)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             <div className="flex items-center border rounded-lg">
               <Button
-                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                variant={viewMode === 'pipeline' ? 'default' : 'ghost'}
                 size="sm"
-                onClick={() => setViewMode('grid')}
+                onClick={() => setViewMode('pipeline')}
                 className="rounded-r-none"
               >
-                <Grid className="h-4 w-4" />
+                Pipeline
               </Button>
               <Button
                 variant={viewMode === 'list' ? 'default' : 'ghost'}
@@ -304,13 +502,14 @@ export function BrandCRM() {
               </Button>
             </div>
 
-            {(statusFilter !== 'all' || sourceFilter !== 'all' || searchTerm) && (
+            {(statusFilter !== 'all' || sourceFilter !== 'all' || priorityFilter !== 'all' || searchTerm) && (
               <Button 
                 variant="ghost" 
                 size="sm"
                 onClick={() => {
                   setStatusFilter('all')
                   setSourceFilter('all')
+                  setPriorityFilter('all')
                   setSearchTerm('')
                 }}
               >
@@ -321,94 +520,15 @@ export function BrandCRM() {
         </CardContent>
       </Card>
 
-      {/* Contacts Display */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {filteredContacts.length} {filteredContacts.length === 1 ? 'Contact' : 'Contacts'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {viewMode === 'grid' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredContacts.map((contact) => (
-                <Card key={contact.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="w-10 h-10">
-                          <AvatarFallback>
-                            {contact.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h4 className="font-medium">{contact.name}</h4>
-                          <p className="text-sm text-gray-600">{contact.role}</p>
-                        </div>
-                      </div>
-                      <Badge className={statusColors[contact.status]}>
-                        {contact.status}
-                      </Badge>
-                    </div>
-
-                    <div className="space-y-2 mb-3">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Building className="h-3 w-3 text-gray-400" />
-                        <span className="text-gray-600">{contact.company}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <MapPin className="h-3 w-3 text-gray-400" />
-                        <span className="text-gray-600">{contact.location}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Calendar className="h-3 w-3 text-gray-400" />
-                        <span className="text-gray-600">
-                          Last contact: {format(contact.lastContact, 'MMM d')}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {contact.tags.slice(0, 2).map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                      {contact.tags.length > 2 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{contact.tags.length - 2}
-                        </Badge>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 mb-3 text-sm">
-                      <div>
-                        <p className="text-gray-600">Orders</p>
-                        <p className="font-semibold">{contact.totalOrders}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-600">Value</p>
-                        <p className="font-semibold">${(contact.totalValue / 1000).toFixed(0)}K</p>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1">
-                        <Mail className="h-4 w-4 mr-1" />
-                        Email
-                      </Button>
-                      {contact.phone && (
-                        <Button variant="outline" size="sm" className="flex-1">
-                          <Phone className="h-4 w-4 mr-1" />
-                          Call
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
+      {/* List View */}
+      {viewMode === 'list' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {filteredContacts.length} {filteredContacts.length === 1 ? 'Contact' : 'Contacts'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
@@ -416,70 +536,106 @@ export function BrandCRM() {
                     <TableHead>Contact</TableHead>
                     <TableHead>Company</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Priority</TableHead>
                     <TableHead>Orders</TableHead>
                     <TableHead>Value</TableHead>
-                    <TableHead>Last Contact</TableHead>
+                    <TableHead>Follow-up</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredContacts.map((contact) => (
-                    <TableRow key={contact.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="w-8 h-8">
-                            <AvatarFallback className="text-xs">
-                              {contact.name.split(' ').map(n => n[0]).join('')}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{contact.name}</p>
-                            <p className="text-sm text-gray-600">{contact.role}</p>
+                  {filteredContacts.map((contact) => {
+                    const PriorityIcon = getPriorityIcon(contact.priority)
+                    const followUpStatus = getFollowUpStatus(contact)
+                    
+                    return (
+                      <TableRow key={contact.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="w-8 h-8">
+                              <AvatarFallback className="text-xs">
+                                {contact.name.split(' ').map(n => n[0]).join('')}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">{contact.name}</p>
+                              <p className="text-sm text-gray-600">{contact.role}</p>
+                            </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{contact.company}</p>
-                          <p className="text-sm text-gray-600">{contact.location}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={statusColors[contact.status]}>
-                          {contact.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{contact.totalOrders}</TableCell>
-                      <TableCell>${(contact.totalValue / 1000).toFixed(0)}K</TableCell>
-                      <TableCell>{format(contact.lastContact, 'MMM d, yyyy')}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Mail className="h-4 w-4" />
-                          </Button>
-                          {contact.phone && (
-                            <Button variant="ghost" size="sm">
-                              <Phone className="h-4 w-4" />
-                            </Button>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{contact.company}</p>
+                            <p className="text-sm text-gray-600">{contact.location}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={statusColors[contact.status]}>
+                            {contact.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <PriorityIcon className="h-3 w-3" />
+                            <Badge variant="outline" className={priorityColors[contact.priority]}>
+                              {contact.priority}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell>{contact.totalOrders}</TableCell>
+                        <TableCell>${(contact.totalValue / 1000).toFixed(0)}K</TableCell>
+                        <TableCell>
+                          {followUpStatus ? (
+                            <span className={followUpStatus.color}>
+                              {followUpStatus.text}
+                            </span>
+                          ) : (
+                            <span className="text-gray-500">-</span>
                           )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button variant="ghost" size="sm">
+                              <Mail className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm">
+                              <MessageSquare className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </div>
-          )}
+          </CardContent>
+        </Card>
+      )}
 
-          {filteredContacts.length === 0 && (
-            <div className="text-center py-12">
-              <Users2 className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No contacts found</h3>
-              <p className="text-gray-600">Try adjusting your search or filters</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {filteredContacts.length === 0 && (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <Users2 className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No contacts found</h3>
+            <p className="text-gray-600 mb-6">
+              {searchTerm || statusFilter !== 'all' || sourceFilter !== 'all' || priorityFilter !== 'all'
+                ? "Try adjusting your search or filters"
+                : "Get started by adding your first contact"
+              }
+            </p>
+            {!searchTerm && statusFilter === 'all' && sourceFilter === 'all' && priorityFilter === 'all' && (
+              <Button>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add Your First Contact
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
