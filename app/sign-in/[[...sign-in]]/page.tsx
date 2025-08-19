@@ -7,8 +7,8 @@ export default function Page() {
   const router = useRouter()
   
   const handleSignIn = () => {
-    // Mock sign in - redirect to app area
-    router.push("/app")
+    // Redirect to sign-up page to choose interface
+    router.push("/sign-up")
   }
   
   return (
@@ -19,7 +19,7 @@ export default function Page() {
           <p className="text-gray-600 mt-2">Development mode - no authentication required</p>
         </div>
         <Button onClick={handleSignIn} className="w-full">
-          Continue as Developer
+          Continue to Interface Selection
         </Button>
       </div>
     </div>

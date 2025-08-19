@@ -269,8 +269,8 @@ export default function ComplianceTemplatesPage() {
   const filteredTemplates = templates.filter(template => {
     const matchesSearch = template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          template.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = !categoryFilter || template.category === categoryFilter
-    const matchesRegion = !regionFilter || template.region === regionFilter
+    const matchesCategory = !categoryFilter || categoryFilter === 'all' || template.category === categoryFilter
+    const matchesRegion = !regionFilter || regionFilter === 'all' || template.region === regionFilter
     
     return matchesSearch && matchesCategory && matchesRegion
   })
@@ -377,7 +377,7 @@ export default function ComplianceTemplatesPage() {
                       <SelectValue placeholder="All categories" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Categories</SelectItem>
+                      <SelectItem value="all">All Categories</SelectItem>
                       <SelectItem value="export">Export Documentation</SelectItem>
                       <SelectItem value="safety">Safety & Compliance</SelectItem>
                       <SelectItem value="environmental">Environmental</SelectItem>
@@ -393,7 +393,7 @@ export default function ComplianceTemplatesPage() {
                       <SelectValue placeholder="All regions" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Regions</SelectItem>
+                      <SelectItem value="all">All Regions</SelectItem>
                       <SelectItem value="Global">Global</SelectItem>
                       <SelectItem value="USA">USA</SelectItem>
                       <SelectItem value="North America">North America</SelectItem>

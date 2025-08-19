@@ -264,7 +264,7 @@ export default function TestLocationManagementPage() {
                           <SelectValue placeholder="Select location" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">No Location</SelectItem>
+                          <SelectItem value="none">No Location</SelectItem>
                           {locations.map((location) => (
                             <SelectItem key={location._id} value={location._id}>
                               {location.name} ({location.type})

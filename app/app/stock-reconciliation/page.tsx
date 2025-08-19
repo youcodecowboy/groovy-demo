@@ -173,8 +173,8 @@ export default function StockReconciliationPage() {
       const matchesSearch = !searchTerm || 
         item.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.sku.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesCategory = !filterCategory || item.category === filterCategory
-      const matchesStatus = !filterStatus || item.status === filterStatus
+      const matchesCategory = !filterCategory || filterCategory === 'all' || item.category === filterCategory
+      const matchesStatus = !filterStatus || filterStatus === 'all' || item.status === filterStatus
       
       return matchesSearch && matchesCategory && matchesStatus
     })
@@ -392,7 +392,7 @@ export default function StockReconciliationPage() {
                       <SelectValue placeholder="All categories" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Categories</SelectItem>
+                      <SelectItem value="all">All Categories</SelectItem>
                       {stockCategories.map(category => (
                         <SelectItem key={category.id} value={category.id}>
                           {category.name}
@@ -408,7 +408,7 @@ export default function StockReconciliationPage() {
                       <SelectValue placeholder="All statuses" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Statuses</SelectItem>
+                      <SelectItem value="all">All Statuses</SelectItem>
                       <SelectItem value="pending">Pending</SelectItem>
                       <SelectItem value="investigating">Investigating</SelectItem>
                       <SelectItem value="reconciled">Reconciled</SelectItem>
