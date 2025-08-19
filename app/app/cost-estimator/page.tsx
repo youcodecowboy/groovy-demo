@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,7 +8,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
-import { DollarSign, Plus, Trash2, Save, FileText, TrendingUp, AlertCircle } from "lucide-react"
+import { Separator } from "@/components/ui/separator"
+import { DollarSign, Plus, Trash2, Save, FileText, TrendingUp, AlertCircle, RefreshCw, Settings } from "lucide-react"
+import { toast } from "sonner"
 
 interface CostItem {
   id: string
@@ -60,6 +62,10 @@ export default function CostEstimatorPage() {
   const [markup, setMarkup] = useState(25) // percentage
   const [discount, setDiscount] = useState(0) // percentage
   const [savedEstimates, setSavedEstimates] = useState<CostEstimate[]>([])
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
+  const [projectName, setProjectName] = useState('')
+  const [customerName, setCustomerName] = useState('')
+  const estimateRef = useRef<HTMLDivElement>(null)
 
   const addItem = () => {
     const newItem: CostItem = {
@@ -78,6 +84,9 @@ export default function CostEstimatorPage() {
   const removeItem = (id: string) => {
     if (items.length > 1) {
       setItems(prev => prev.filter(item => item.id !== id))
+      toast.success("Cost item removed")
+    } else {
+      toast.error("At least one cost item is required")
     }
   }
 
@@ -130,7 +139,10 @@ export default function CostEstimatorPage() {
   }
 
   const saveEstimate = () => {
-    if (!estimateName) return
+    if (!estimateName.trim()) {
+      toast.error("Please enter an estimate name")
+      return
+    }
 
     const estimate: CostEstimate = {
       id: Date.now().toString(),
@@ -149,6 +161,61 @@ export default function CostEstimatorPage() {
 
     setSavedEstimates(prev => [estimate, ...prev])
     setEstimateName('')
+    setProjectName('')
+    setCustomerName('')
+    toast.success("Cost estimate saved successfully!")
+  }
+
+  const generatePDF = async () => {
+    if (!estimateRef.current) {
+      toast.error("Estimate data not available")
+      return
+    }
+
+    setIsGeneratingPDF(true)
+    try {
+      // Dynamic imports to avoid SSR issues
+      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+        import('jspdf'),
+        import('html2canvas')
+      ])
+
+      const element = estimateRef.current
+      const canvas = await html2canvas(element, {
+        useCORS: true,
+        allowTaint: true,
+        background: '#ffffff'
+      })
+
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      
+      const imgWidth = 210
+      const pageHeight = 295
+      const imgHeight = (canvas.height * imgWidth) / canvas.width
+      let heightLeft = imgHeight
+
+      let position = 0
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+      heightLeft -= pageHeight
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight
+        pdf.addPage()
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+        heightLeft -= pageHeight
+      }
+
+      const fileName = estimateName || `cost-estimate-${Date.now()}`
+      pdf.save(`${fileName}.pdf`)
+      toast.success("PDF generated successfully!")
+    } catch (error) {
+      console.error('Error generating PDF:', error)
+      toast.error("Failed to generate PDF")
+    } finally {
+      setIsGeneratingPDF(false)
+    }
   }
 
   const loadEstimate = (estimate: CostEstimate) => {

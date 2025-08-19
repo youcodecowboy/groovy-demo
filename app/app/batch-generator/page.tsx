@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Hash, Download, Copy, RefreshCw, Calendar, Package, FileText } from "lucide-react"
+import { toast } from "sonner"
 
 interface BatchData {
   id: string
@@ -93,10 +94,15 @@ export default function BatchGeneratorPage() {
     const paddedSequence = String(sequence).padStart(config.sequenceLength, '0')
     parts.push(paddedSequence)
     
-    return parts.join(config.separator)
+    return parts.join(config.separator === 'none' ? '' : config.separator)
   }
 
   const generateBatches = () => {
+    if (config.count <= 0 || config.count > 50) {
+      toast.error("Please enter a valid count between 1 and 50")
+      return
+    }
+
     const newBatches: BatchData[] = []
     const now = new Date()
     
@@ -128,6 +134,7 @@ export default function BatchGeneratorPage() {
     
     setBatches(prev => [...newBatches, ...prev])
     setConfig(prev => ({ ...prev, startSequence: prev.startSequence + prev.count }))
+    toast.success(`Generated ${config.count} batch number${config.count > 1 ? 's' : ''}`)
   }
 
   const updateBatchStatus = (id: string, status: 'active' | 'completed' | 'cancelled') => {
@@ -138,6 +145,7 @@ export default function BatchGeneratorPage() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
+    toast.success("Batch number copied to clipboard")
   }
 
   const exportBatches = () => {
@@ -157,11 +165,13 @@ export default function BatchGeneratorPage() {
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
+    toast.success("Batch numbers exported to CSV")
   }
 
   const clearBatches = () => {
     setBatches([])
     setConfig(prev => ({ ...prev, startSequence: 1 }))
+    toast.success("All batches cleared")
   }
 
   const previewBatchNumber = () => {
@@ -196,7 +206,7 @@ export default function BatchGeneratorPage() {
         <div className="lg:col-span-1 space-y-6">
           {/* Batch Type */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-4">
               <CardTitle>Batch Configuration</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -253,7 +263,7 @@ export default function BatchGeneratorPage() {
 
           {/* Date/Time Configuration */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
                 Date & Time
@@ -338,7 +348,7 @@ export default function BatchGeneratorPage() {
                   id="count"
                   type="number"
                   min="1"
-                  max="100"
+                  max="50"
                   value={config.count}
                   onChange={(e) => setConfig(prev => ({ ...prev, count: Number(e.target.value) }))}
                 />
@@ -348,7 +358,7 @@ export default function BatchGeneratorPage() {
 
           {/* Batch Details */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
                 Batch Details
@@ -380,7 +390,7 @@ export default function BatchGeneratorPage() {
 
           {/* Preview & Generate */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-4">
               <CardTitle>Preview & Generate</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -403,7 +413,7 @@ export default function BatchGeneratorPage() {
         <div className="lg:col-span-2 space-y-6">
           {/* Header Controls */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-4">
               <CardTitle className="flex items-center justify-between">
                 <span>Generated Batches ({batches.length})</span>
                 <div className="flex gap-2">
