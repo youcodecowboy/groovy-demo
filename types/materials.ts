@@ -101,6 +101,36 @@ export interface LabelTemplate {
   fields: Array<{ key: string; x: number; y: number; font: number }>;
 }
 
+export interface PurchaseOrder {
+  id: string;
+  materialId: string;
+  materialName: string;
+  quantity: number;
+  unit: Unit;
+  unitCost: number;
+  totalValue: number;
+  supplier: string;
+  expectedDelivery: number;
+  status: 'pending' | 'confirmed' | 'delivered' | 'cancelled';
+  notes?: string;
+  createdAt: number;
+  deliveredAt?: number;
+}
+
+export interface MaterialAlert {
+  id: string;
+  type: 'low_stock' | 'high_usage' | 'po_mismatch' | 'expiry_warning' | 'cost_variance';
+  severity: 'info' | 'warning' | 'error';
+  materialId?: string;
+  materialName?: string;
+  message: string;
+  createdAt: number;
+  acknowledged: boolean;
+  acknowledgedBy?: string;
+  acknowledgedAt?: number;
+  metadata?: Record<string, any>;
+}
+
 // Filter and view types for UI
 export interface MaterialFilters {
   search?: string;

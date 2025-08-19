@@ -5,6 +5,14 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import MaterialHeader from '@/components/materials/material-header'
 import MaterialOverview from '@/components/materials/material-overview'
+import LocationsPanel from '@/components/materials/locations-panel'
+import MovementsPanel from '@/components/materials/movements-panel'
+import UsageAnalyticsPanel from '@/components/materials/usage-analytics-panel'
+import PricingPanel from '@/components/materials/pricing-panel'
+import LabelsPanel from '@/components/materials/labels-panel'
+import SettingsPanel from '@/components/materials/settings-panel'
+import AuditPanel from '@/components/materials/audit-panel'
+import POGenerationPanel from '@/components/materials/po-generation-panel'
 import { dataAdapter } from '@/lib/dataAdapter'
 import { useToast } from '@/hooks/use-toast'
 import { 
@@ -174,12 +182,13 @@ export default function MaterialDetailsPage() {
 
       <div className="container mx-auto px-6 py-6">
         <Tabs defaultValue={initialTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8">
+          <TabsList className="grid w-full grid-cols-9">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="lots">Lots & Locations</TabsTrigger>
             <TabsTrigger value="movements">Movements</TabsTrigger>
             <TabsTrigger value="usage">Usage</TabsTrigger>
             <TabsTrigger value="pricing">Pricing</TabsTrigger>
+            <TabsTrigger value="po">Purchase Orders</TabsTrigger>
             <TabsTrigger value="labels">Labels</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
             <TabsTrigger value="audit">Audit</TabsTrigger>
@@ -194,52 +203,63 @@ export default function MaterialDetailsPage() {
           </TabsContent>
 
           <TabsContent value="lots" className="space-y-6">
-            <div className="text-center py-12 text-muted-foreground">
-              <h3 className="text-lg font-semibold mb-2">Lots & Locations</h3>
-              <p>Lot tracking and location management coming soon</p>
-            </div>
+            <LocationsPanel
+              material={material}
+              onLocationUpdate={() => {
+                // Reload data when locations are updated
+                const loadData = async () => {
+                  const snapshot = await dataAdapter.getInventorySnapshot(materialId)
+                  setInventorySnapshot(snapshot)
+                }
+                loadData()
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="movements" className="space-y-6">
-            <div className="text-center py-12 text-muted-foreground">
-              <h3 className="text-lg font-semibold mb-2">Movement History</h3>
-              <p>Detailed movement ledger coming soon</p>
-            </div>
+            <MovementsPanel material={material} />
           </TabsContent>
 
           <TabsContent value="usage" className="space-y-6">
-            <div className="text-center py-12 text-muted-foreground">
-              <h3 className="text-lg font-semibold mb-2">Usage Analytics</h3>
-              <p>Usage by orders and consumption tracking coming soon</p>
-            </div>
+            <UsageAnalyticsPanel material={material} />
           </TabsContent>
 
           <TabsContent value="pricing" className="space-y-6">
-            <div className="text-center py-12 text-muted-foreground">
-              <h3 className="text-lg font-semibold mb-2">Price History</h3>
-              <p>Price tracking and valuation methods coming soon</p>
-            </div>
+            <PricingPanel material={material} />
+          </TabsContent>
+
+          <TabsContent value="po" className="space-y-6">
+            <POGenerationPanel 
+              material={material}
+              onPOGenerated={(poId) => {
+                toast({
+                  title: "PO Generated",
+                  description: `Purchase order ${poId} created successfully`,
+                })
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="labels" className="space-y-6">
-            <div className="text-center py-12 text-muted-foreground">
-              <h3 className="text-lg font-semibold mb-2">Label Management</h3>
-              <p>QR codes and label printing coming soon</p>
-            </div>
+            <LabelsPanel material={material} />
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">
-            <div className="text-center py-12 text-muted-foreground">
-              <h3 className="text-lg font-semibold mb-2">Material Settings</h3>
-              <p>Attribute editing and configuration coming soon</p>
-            </div>
+            <SettingsPanel 
+              material={material}
+              onSettingsUpdate={() => {
+                // Reload material data when settings are updated
+                const loadData = async () => {
+                  const materialData = await dataAdapter.getMaterial(materialId)
+                  if (materialData) setMaterial(materialData)
+                }
+                loadData()
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="audit" className="space-y-6">
-            <div className="text-center py-12 text-muted-foreground">
-              <h3 className="text-lg font-semibold mb-2">Audit Trail</h3>
-              <p>Complete audit history coming soon</p>
-            </div>
+            <AuditPanel material={material} />
           </TabsContent>
         </Tabs>
       </div>

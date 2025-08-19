@@ -29,6 +29,7 @@ import type {
 import {
     DEFAULT_UNIT_CONVERSIONS,
     DEFAULT_CATEGORY_TEMPLATES,
+    isLowStock,
 } from "@/types/materials"
 
 // Mock data storage
@@ -1058,5 +1059,342 @@ export const dataAdapter = {
         ]
       }
     )
+  },
+
+  // Purchase Orders methods
+  async getPendingMaterialOrders(): Promise<any[]> {
+    // Mock pending orders data - in real app would come from database
+    return [
+      {
+        id: 'po-001',
+        materialId: materials[0]?.id,
+        materialName: materials[0]?.name,
+        quantity: 100,
+        unit: materials[0]?.defaultUnit,
+        unitCost: 15.50,
+        totalValue: 1550,
+        supplier: 'Fabric World Inc.',
+        expectedDelivery: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days from now
+        status: 'pending',
+        createdAt: Date.now() - 2 * 24 * 60 * 60 * 1000, // 2 days ago
+      },
+      {
+        id: 'po-002',
+        materialId: materials[1]?.id,
+        materialName: materials[1]?.name,
+        quantity: 50,
+        unit: materials[1]?.defaultUnit,
+        unitCost: 18.75,
+        totalValue: 937.50,
+        supplier: 'Premium Textiles Ltd.',
+        expectedDelivery: Date.now() + 10 * 24 * 60 * 60 * 1000, // 10 days from now
+        status: 'pending',
+        createdAt: Date.now() - 1 * 24 * 60 * 60 * 1000, // 1 day ago
+      }
+    ]
+  },
+
+  async createPurchaseOrder(materialId: string, quantity: number, unitCost: number, supplier: string, notes?: string): Promise<string> {
+    const material = materials.find(m => m.id === materialId)
+    if (!material) throw new Error('Material not found')
+
+    const poId = `po-${Date.now()}`
+    const po = {
+      id: poId,
+      materialId,
+      materialName: material.name,
+      quantity,
+      unit: material.defaultUnit,
+      unitCost,
+      totalValue: quantity * unitCost,
+      supplier,
+      expectedDelivery: Date.now() + 14 * 24 * 60 * 60 * 1000, // 2 weeks default
+      status: 'pending',
+      notes,
+      createdAt: Date.now(),
+    }
+
+    // In real app, would save to database
+    console.log('Created PO:', po)
+    return poId
+  },
+
+  async getPurchaseOrderHistory(materialId: string): Promise<any[]> {
+    // Mock PO history - in real app would query database
+    return [
+      {
+        id: 'po-hist-001',
+        materialId,
+        quantity: 150,
+        unitCost: 14.25,
+        totalValue: 2137.50,
+        supplier: 'Fabric World Inc.',
+        status: 'completed',
+        orderDate: Date.now() - 30 * 24 * 60 * 60 * 1000,
+        deliveredDate: Date.now() - 23 * 24 * 60 * 60 * 1000,
+      },
+      {
+        id: 'po-hist-002',
+        materialId,
+        quantity: 200,
+        unitCost: 15.80,
+        totalValue: 3160,
+        supplier: 'Premium Textiles Ltd.',
+        status: 'completed',
+        orderDate: Date.now() - 60 * 24 * 60 * 60 * 1000,
+        deliveredDate: Date.now() - 52 * 24 * 60 * 60 * 1000,
+      }
+    ]
+  },
+
+  // Locations methods
+  async getLocations(): Promise<Location[]> {
+    return [...locations]
+  },
+
+  async createLocation(location: Omit<Location, 'id'>): Promise<string> {
+    const id = `loc-${Date.now()}`
+    locations.push({ ...location, id })
+    return id
+  },
+
+  async updateLocation(id: string, updates: Partial<Location>): Promise<void> {
+    const index = locations.findIndex(l => l.id === id)
+    if (index >= 0) {
+      locations[index] = { ...locations[index], ...updates }
+    }
+  },
+
+  async deleteLocation(id: string): Promise<void> {
+    const index = locations.findIndex(l => l.id === id)
+    if (index >= 0) {
+      locations.splice(index, 1)
+    }
+  },
+
+  async getMaterialLotsByLocation(materialId: string): Promise<Record<string, MaterialLot[]>> {
+    const materialLotsByLocation: Record<string, MaterialLot[]> = {}
+    
+    materialLots
+      .filter(lot => lot.materialId === materialId && lot.quantity > 0)
+      .forEach(lot => {
+        const locationId = lot.locationId || 'unassigned'
+        if (!materialLotsByLocation[locationId]) {
+          materialLotsByLocation[locationId] = []
+        }
+        materialLotsByLocation[locationId].push(lot)
+      })
+    
+    return materialLotsByLocation
+  },
+
+  // Usage analytics methods
+  async getMaterialUsageAnalytics(materialId: string, days: number = 30): Promise<any> {
+    const cutoffDate = Date.now() - (days * 24 * 60 * 60 * 1000)
+    const movements = materialMovements.filter(m => 
+      m.materialId === materialId && 
+      m.at >= cutoffDate &&
+      m.type === 'ISSUE'
+    )
+
+    // Calculate daily usage
+    const dailyUsage: Record<string, number> = {}
+    movements.forEach(movement => {
+      const date = new Date(movement.at).toISOString().split('T')[0]
+      dailyUsage[date] = (dailyUsage[date] || 0) + movement.quantity
+    })
+
+    const totalUsage = movements.reduce((sum, m) => sum + m.quantity, 0)
+    const avgDailyUsage = totalUsage / days
+    const projectedRunOut = avgDailyUsage > 0 ? (await this.getInventorySnapshot(materialId)).onHand / avgDailyUsage : null
+
+    return {
+      totalUsage,
+      avgDailyUsage,
+      projectedRunOut,
+      dailyUsage,
+      movements: movements.slice(0, 10), // Recent 10 movements
+    }
+  },
+
+  // Label generation methods
+  async getLabelTemplates(): Promise<LabelTemplate[]> {
+    return [...labelTemplates]
+  },
+
+  async generateMaterialLabel(materialId: string, templateId: string): Promise<string> {
+    const material = materials.find(m => m.id === materialId)
+    const template = labelTemplates.find(t => t.id === templateId)
+    
+    if (!material || !template) throw new Error('Material or template not found')
+
+    // Mock label generation - in real app would generate actual PDF/image
+    const labelData = {
+      material,
+      template,
+      qrData: `material:${material.id}`,
+      generatedAt: Date.now(),
+    }
+
+    console.log('Generated label:', labelData)
+    return `label-${Date.now()}.pdf`
+  },
+
+  async generateLotLabel(lotId: string, templateId: string): Promise<string> {
+    const lot = materialLots.find(l => l.id === lotId)
+    const template = labelTemplates.find(t => t.id === templateId)
+    
+    if (!lot || !template) throw new Error('Lot or template not found')
+
+    const material = materials.find(m => m.id === lot.materialId)
+    
+    const labelData = {
+      lot,
+      material,
+      template,
+      qrData: `lot:${lot.id}`,
+      generatedAt: Date.now(),
+    }
+
+    console.log('Generated lot label:', labelData)
+    return `lot-label-${Date.now()}.pdf`
+  },
+
+  // Material alerts methods
+  async getMaterialAlerts(): Promise<any[]> {
+    const alerts = []
+    
+    // Check for low stock alerts
+    for (const material of materials) {
+      const snapshot = await this.getInventorySnapshot(material.id)
+      if (isLowStock(material, snapshot.onHand)) {
+        alerts.push({
+          id: `alert-low-stock-${material.id}`,
+          type: 'low_stock',
+          severity: 'warning',
+          materialId: material.id,
+          materialName: material.name,
+          message: `${material.name} is below reorder point (${snapshot.onHand} ${material.defaultUnit} remaining)`,
+          createdAt: Date.now(),
+          acknowledged: false,
+        })
+      }
+    }
+
+    // Check for high usage alerts
+    for (const material of materials) {
+      const analytics = await this.getMaterialUsageAnalytics(material.id, 7)
+      if (analytics.avgDailyUsage > 10) { // Mock threshold
+        alerts.push({
+          id: `alert-high-usage-${material.id}`,
+          type: 'high_usage',
+          severity: 'info',
+          materialId: material.id,
+          materialName: material.name,
+          message: `${material.name} has high usage: ${analytics.avgDailyUsage.toFixed(1)} ${material.defaultUnit}/day`,
+          createdAt: Date.now(),
+          acknowledged: false,
+        })
+      }
+    }
+
+    return alerts.sort((a, b) => b.createdAt - a.createdAt)
+  },
+
+  async acknowledgeAlert(alertId: string): Promise<void> {
+    console.log('Acknowledged alert:', alertId)
+    // In real app, would update database
+  },
+
+  // Settings methods
+  async updateMaterialSettings(settings: Partial<MaterialSettings>): Promise<void> {
+    materialSettings = { ...materialSettings, ...settings }
+  },
+
+  async getMaterialSettings(): Promise<MaterialSettings> {
+    return { ...materialSettings }
+  },
+
+  // Additional methods for new features
+  async getMaterialLots(materialId: string): Promise<MaterialLot[]> {
+    return materialLots.filter(lot => lot.materialId === materialId)
+  },
+
+  async getPriceHistory(materialId: string): Promise<PriceHistory[]> {
+    return priceHistory
+      .filter(p => p.materialId === materialId)
+      .sort((a, b) => b.at - a.at) // Most recent first
+  },
+
+  async addPriceHistory(priceData: Omit<PriceHistory, 'id' | 'at'>): Promise<string> {
+    const id = `price-${Date.now()}`
+    const price: PriceHistory = {
+      ...priceData,
+      id,
+      at: Date.now()
+    }
+    priceHistory.push(price)
+    return id
+  },
+
+  async getAuditTrail(materialId: string): Promise<any[]> {
+    // Mock audit trail data - in real app would come from database
+    return [
+      {
+        id: 'audit-001',
+        timestamp: Date.now() - 2 * 24 * 60 * 60 * 1000,
+        action: 'CREATE',
+        entity: 'material',
+        entityId: materialId,
+        actor: 'John Doe',
+        changes: {
+          name: { from: null, to: 'Cotton Canvas - Natural' },
+          code: { from: null, to: 'FAB-001' },
+          category: { from: null, to: 'fabric' }
+        }
+      },
+      {
+        id: 'audit-002',
+        timestamp: Date.now() - 1 * 24 * 60 * 60 * 1000,
+        action: 'RECEIVE',
+        entity: 'lot',
+        entityId: 'lot-001',
+        actor: 'Jane Smith',
+        changes: {
+          quantity: { from: 0, to: 100 },
+          unitCost: { from: null, to: 15.50 }
+        },
+        metadata: {
+          lotCode: 'LOT-2024-001',
+          location: 'WH-A1-BIN01'
+        }
+      },
+      {
+        id: 'audit-003',
+        timestamp: Date.now() - 6 * 60 * 60 * 1000,
+        action: 'UPDATE',
+        entity: 'material',
+        entityId: materialId,
+        actor: 'John Doe',
+        changes: {
+          reorderPoint: { from: 30, to: 50 }
+        }
+      },
+      {
+        id: 'audit-004',
+        timestamp: Date.now() - 2 * 60 * 60 * 1000,
+        action: 'ISSUE',
+        entity: 'lot',
+        entityId: 'lot-001',
+        actor: 'Mike Johnson',
+        changes: {
+          quantity: { from: 100, to: 75 }
+        },
+        metadata: {
+          reason: 'Production Order #PO-001',
+          issuedTo: 'Cutting Department'
+        }
+      }
+    ].sort((a, b) => b.timestamp - a.timestamp)
   },
 }

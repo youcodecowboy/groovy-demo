@@ -38,10 +38,12 @@ import {
     Warehouse,
     WashingMachine,
     Archive,
-    Package2
+    Package2,
+    Bell
 } from "lucide-react"
 import { SignedIn, UserButton } from "@/components/ui/mock-auth-components"
 import { FeatureManager } from "./feature-manager"
+import { HeaderBell } from "@/components/notifications"
 
 // Feature configuration mapping
 const featureConfig = {
@@ -70,7 +72,7 @@ const coreNavigation = [
       { name: "Orders", href: "/app/orders", icon: FileText },
       { name: "Reports", href: "/app/reports", icon: BarChart3 },
       { name: "Messages", href: "/app/messages", icon: MessageSquare },
-      { name: "Settings", href: "/app/settings", icon: Settings },
+      { name: "Usage & Billing", href: "/app/billing", icon: Settings },
     ],
   },
   {
@@ -166,8 +168,8 @@ export function AppSidebar({ children }: AppSidebarProps) {
   return (
     <SidebarProvider defaultOpen>
       <Sidebar className="bg-[#F7F8FB] border-r">
-        <SidebarHeader className="border-b px-6 py-5 bg-white">
-          <div className="flex items-center justify-between">
+        <SidebarHeader className="border-b px-6 h-16 bg-white">
+          <div className="flex items-center justify-between h-full">
             <Image src="/groovy-logo.png" alt="Groovy" width={150} height={45} className="h-10 w-auto" />
           </div>
         </SidebarHeader>
@@ -220,11 +222,14 @@ export function AppSidebar({ children }: AppSidebarProps) {
         </SidebarContent>
       </Sidebar>
       <SidebarInset className="flex-1">
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-white px-6">
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-white px-8 md:px-10">
           <SidebarTrigger className="-ml-1" />
           <div className="flex-1" />
+          <HeaderBell />
         </header>
-        {children}
+        <div className="p-8 md:p-10">
+          {children}
+        </div>
       </SidebarInset>
     </SidebarProvider>
   )

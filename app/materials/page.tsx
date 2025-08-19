@@ -4,6 +4,18 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import MaterialsHeader from '@/components/materials/materials-header'
 import MaterialsTable from '@/components/materials/materials-table'
+import ValueCard from '@/components/materials/value-card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { 
+  Package, 
+  DollarSign, 
+  TrendingUp, 
+  AlertTriangle,
+  ShoppingCart,
+  Clock
+} from 'lucide-react'
 import { dataAdapter } from '@/lib/dataAdapter'
 import { useToast } from '@/hooks/use-toast'
 import { 
@@ -11,7 +23,8 @@ import {
   type MaterialFilters, 
   type MaterialListView,
   type InventorySnapshot,
-  isLowStock
+  isLowStock,
+  formatCurrency
 } from '@/types/materials'
 
 export default function MaterialsPage() {
@@ -22,6 +35,7 @@ export default function MaterialsPage() {
   const [inventorySnapshots, setInventorySnapshots] = useState<Record<string, InventorySnapshot>>({})
   const [loading, setLoading] = useState(true)
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([])
+  const [pendingOrders, setPendingOrders] = useState<any[]>([])
   
   const [filters, setFilters] = useState<MaterialFilters>({})
   const [view, setView] = useState<MaterialListView>({
@@ -55,6 +69,14 @@ export default function MaterialsPage() {
         }
         setInventorySnapshots(snapshots)
         
+        // Load pending orders
+        try {
+          const pendingOrdersData = await dataAdapter.getPendingMaterialOrders()
+          setPendingOrders(pendingOrdersData)
+        } catch (error) {
+          console.error('Failed to load pending orders:', error)
+        }
+        
       } catch (error) {
         console.error('Failed to load materials:', error)
         toast({
@@ -76,6 +98,12 @@ export default function MaterialsPage() {
     const snapshot = inventorySnapshots[material.id]
     return isLowStock(material, snapshot?.onHand || 0)
   }).length
+  
+  // Calculate overview metrics
+  const totalValue = Object.values(inventorySnapshots).reduce((sum, snapshot) => sum + snapshot.value, 0)
+  const totalOnOrder = pendingOrders.reduce((sum, order) => sum + (order.totalValue || 0), 0)
+  const avgMovementTrend = 8.3 // Mock trend - would calculate from recent movements
+  const forecastValue = totalValue * (1 + avgMovementTrend / 100) // Simple forecast
 
   // Handlers
   const handleNewMaterial = () => {
@@ -173,6 +201,14 @@ export default function MaterialsPage() {
     router.push(`/materials/labels?materials=${material.id}`)
   }
 
+  const handleGeneratePO = (material: Material) => {
+    router.push(`/materials/${material.id}?tab=po`)
+  }
+
+  const handleViewAlerts = () => {
+    router.push('/materials/alerts')
+  }
+
   if (loading) {
     return (
       <div className="container mx-auto py-8">
@@ -197,9 +233,107 @@ export default function MaterialsPage() {
         onImport={handleImport}
         onExportCsv={handleExportCsv}
         onPrintLabels={handlePrintLabels}
+        onViewAlerts={handleViewAlerts}
         materialCount={materialCount}
         lowStockCount={lowStockCount}
       />
+
+      {/* Overview Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <ValueCard
+          title="Total Inventory Value"
+          value={totalValue}
+          currency="USD"
+          subtitle="All materials on hand"
+          icon={DollarSign}
+          trend={{
+            value: 12.4,
+            isPositive: true,
+            period: 'last month'
+          }}
+        />
+        
+        <ValueCard
+          title="Materials on Order"
+          value={totalOnOrder}
+          currency="USD"
+          subtitle={`${pendingOrders.length} pending orders`}
+          icon={ShoppingCart}
+          trend={{
+            value: 5.2,
+            isPositive: true,
+            period: 'last week'
+          }}
+        />
+        
+        <ValueCard
+          title="Forecast Value"
+          value={forecastValue}
+          currency="USD"
+          subtitle="30-day projection"
+          icon={TrendingUp}
+          trend={{
+            value: avgMovementTrend,
+            isPositive: avgMovementTrend > 0,
+            period: 'trend'
+          }}
+        />
+        
+        <ValueCard
+          title="Active Alerts"
+          value={lowStockCount}
+          showAsQuantity={true}
+          unit="alerts"
+          subtitle="Require attention"
+          icon={AlertTriangle}
+        />
+      </div>
+
+      {/* Pending Orders Summary */}
+      {pendingOrders.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5" />
+              Pending Material Orders
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {pendingOrders.slice(0, 3).map((order) => (
+                <div key={order.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 text-blue-600 rounded-full">
+                      <Package className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="font-medium">{order.materialName}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {order.supplier} • Expected {new Date(order.expectedDelivery).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-medium">
+                      {order.quantity} {order.unit}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {formatCurrency(order.totalValue)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {pendingOrders.length > 3 && (
+                <div className="text-center pt-2">
+                  <Button variant="ghost" size="sm">
+                    View all {pendingOrders.length} pending orders
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <MaterialsTable
         materials={materials}
@@ -210,6 +344,7 @@ export default function MaterialsPage() {
         onEditMaterial={handleEditMaterial}
         onReceiveMaterial={handleReceiveMaterial}
         onPrintLabel={handlePrintLabel}
+        onGeneratePO={handleGeneratePO}
         selectedMaterials={selectedMaterials}
         onSelectionChange={setSelectedMaterials}
       />

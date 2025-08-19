@@ -41,6 +41,7 @@ interface MaterialsHeaderProps {
   onImport: () => void
   onExportCsv: () => void
   onPrintLabels: () => void
+  onViewAlerts?: () => void
   materialCount: number
   lowStockCount: number
 }
@@ -57,6 +58,7 @@ export default function MaterialsHeader({
   onImport,
   onExportCsv,
   onPrintLabels,
+  onViewAlerts,
   materialCount,
   lowStockCount
 }: MaterialsHeaderProps) {
@@ -125,7 +127,11 @@ export default function MaterialsHeader({
         </div>
         {lowStockCount > 0 && (
           <div className="flex items-center gap-2">
-            <Badge variant="destructive" className="gap-1">
+            <Badge 
+              variant="destructive" 
+              className="gap-1 cursor-pointer hover:bg-destructive/90"
+              onClick={onViewAlerts}
+            >
               <AlertTriangle className="w-3 h-3" />
               {lowStockCount} low stock
             </Badge>

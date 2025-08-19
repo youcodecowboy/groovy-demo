@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -11,17 +12,30 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Send, Search, Plus, Mail, Paperclip, Package, ChevronDown, X, Clock, CheckCheck } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Send, Search, Plus, Mail, Paperclip, Package, ChevronDown, X, Clock, CheckCheck, Bell, Settings } from "lucide-react"
 import { useUser } from "@/components/ui/mock-auth-components"
 import { useToast } from "@/hooks/use-toast"
+import { NotificationList, NotificationRulesTable, NotificationPrefsForm } from "@/components/notifications"
 
 export default function MessagesPage() {
   const { toast } = useToast()
   const { user } = useUser()
+  const searchParams = useSearchParams()
   const [view, setView] = useState<"inbox" | "compose">("inbox")
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
+  const [activeTab, setActiveTab] = useState("threads")
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Handle URL parameter for tab switching
+  useEffect(() => {
+    const tab = searchParams.get("tab")
+    if (tab === "notifications" || tab === "rules") {
+      setActiveTab(tab)
+    }
+  }, [searchParams])
 
   const [composeForm, setComposeForm] = useState({
     recipient: "",
@@ -43,12 +57,12 @@ export default function MessagesPage() {
   const users = useQuery(api.users.getAll)
   const items = useQuery(api.items.getAll)
   const messages = useQuery(
-    api.messages.getConversation,
-    selectedConversation && isAuthed ? { userId: currentUserId, otherUserId: selectedConversation } : ("skip" as any)
+    api.messages.getMessages,
+    selectedConversation && isAuthed ? { userId: currentUserId } : ("skip" as any)
   )
 
-  const sendMessage = useMutation(api.messages.send)
-  const markAsRead = useMutation(api.messages.markAsRead)
+  const sendMessage = useMutation(api.messages.createMessage)
+  const markAsRead = useMutation(api.messages.markMessageAsRead)
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages])
 
@@ -58,7 +72,12 @@ export default function MessagesPage() {
       return
     }
     const messageContent = JSON.stringify({ subject: composeForm.subject || "No Subject", body: composeForm.message, attachedItemId: composeForm.attachedItemId || null })
-    await sendMessage({ senderId: currentUserId, recipientId: composeForm.recipient, content: messageContent })
+    await sendMessage({ 
+      senderId: currentUserId, 
+      recipientIds: [composeForm.recipient], 
+      content: messageContent,
+      priority: "medium"
+    })
     setComposeForm({ recipient: "", subject: "", message: "", attachedItemId: "" })
     setView("inbox")
     toast({ title: "Message sent", description: "Your message has been sent" })
@@ -67,7 +86,12 @@ export default function MessagesPage() {
   const handleSendQuickReply = async () => {
     if (!quickReplyMessage.trim() || !selectedConversation) return
     const messageContent = JSON.stringify({ subject: "Quick Reply", body: quickReplyMessage.trim(), attachedItemId: quickReplyAttachedItemId || null })
-    await sendMessage({ senderId: currentUserId, recipientId: selectedConversation, content: messageContent })
+    await sendMessage({ 
+      senderId: currentUserId, 
+      recipientIds: [selectedConversation], 
+      content: messageContent,
+      priority: "medium"
+    })
     setQuickReplyMessage("")
     setQuickReplyAttachedItemId("")
     toast({ title: "Message sent", description: "Your message has been sent" })
@@ -86,13 +110,18 @@ export default function MessagesPage() {
     setSelectedConversation(recipientId)
     setView("inbox")
     if (messages && messages.length > 0) {
-      const unreadIds = messages.filter(msg => msg.recipientId === currentUserId && !msg.isRead).map(msg => msg._id)
-      if (unreadIds.length > 0) markAsRead({ messageIds: unreadIds })
+      const unreadIds = messages.filter((msg: any) => msg.recipientId === currentUserId && !msg.isRead).map((msg: any) => msg._id)
+      if (unreadIds.length > 0) {
+        // Mark each message as read individually
+        unreadIds.forEach((messageId: any) => {
+          markAsRead({ messageId })
+        })
+      }
     }
   }
 
-  const filteredConversations = conversations?.filter(c => !searchQuery || c.otherUserId.toLowerCase().includes(searchQuery.toLowerCase())) || []
-  const selectedConversationData = conversations?.find(c => c.otherUserId === selectedConversation)
+  const filteredConversations = conversations?.filter((c: any) => !searchQuery || c.participantId.toLowerCase().includes(searchQuery.toLowerCase())) || []
+  const selectedConversationData = conversations?.find((c: any) => c.participantId === selectedConversation)
 
   if (!isAuthed) {
     return <div className="p-6">Please sign in to view messages.</div>
@@ -114,13 +143,13 @@ export default function MessagesPage() {
         </div>
         <ScrollArea className="h-[calc(100vh-120px)]">
           <div className="p-2">
-            {filteredConversations.map((conversation) => (
-              <div key={conversation.otherUserId} className={`p-3 rounded-lg cursor-pointer transition-colors border ${selectedConversation === conversation.otherUserId ? "bg-blue-100 border-blue-200" : conversation.unreadCount > 0 ? "bg-red-50 border-red-200 hover:bg-red-100" : "hover:bg-gray-100 border-transparent"}`} onClick={() => handleConversationSelect(conversation.otherUserId)}>
+            {filteredConversations.map((conversation: any) => (
+              <div key={conversation.participantId} className={`p-3 rounded-lg cursor-pointer transition-colors border ${selectedConversation === conversation.participantId ? "bg-blue-100 border-blue-200" : conversation.unreadCount > 0 ? "bg-red-50 border-red-200 hover:bg-red-100" : "hover:bg-gray-100 border-transparent"}`} onClick={() => handleConversationSelect(conversation.participantId)}>
                 <div className="flex items-center space-x-3">
-                  <Avatar className="w-10 h-10"><AvatarFallback className="bg-blue-500 text-white">{conversation.otherUserId.charAt(0).toUpperCase()}</AvatarFallback></Avatar>
+                  <Avatar className="w-10 h-10"><AvatarFallback className="bg-blue-500 text-white">{conversation.participantId.charAt(0).toUpperCase()}</AvatarFallback></Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium truncate">{conversation.otherUserId}</p>
+                      <p className="text-sm font-medium truncate">{conversation.participantId}</p>
                       <span className="text-xs text-muted-foreground">{formatTimestamp(conversation.lastMessage.createdAt)}</span>
                     </div>
                     <p className="text-sm text-muted-foreground truncate">{parseMessageContent(conversation.lastMessage.content).subject || "No Subject"}</p>
@@ -223,7 +252,28 @@ export default function MessagesPage() {
           </div>
         ) : (
           <div className="flex-1 flex flex-col">
-            {selectedConversation ? (
+            {/* Tabs for Messages/Notifications */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
+              <div className="border-b bg-white">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="threads" className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    Threads
+                  </TabsTrigger>
+                  <TabsTrigger value="notifications" className="flex items-center gap-2">
+                    <Bell className="h-4 w-4" />
+                    Notifications
+                  </TabsTrigger>
+                  <TabsTrigger value="rules" className="flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    Rules
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              {/* Tab Content */}
+              <TabsContent value="threads" className="flex-1 flex flex-col m-0">
+              {selectedConversation ? (
               <>
                 <div className="p-4 border-b">
                   <div className="flex items-center justify-between">
@@ -239,7 +289,7 @@ export default function MessagesPage() {
                 </div>
                 <ScrollArea className="flex-1 p-4">
                   <div className="space-y-4">
-                    {messages?.map((message) => {
+                    {messages?.map((message: any) => {
                       const parsed = parseMessageContent(message.content); const isOwn = message.senderId === currentUserId
                       return (
                         <div key={message._id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
@@ -308,6 +358,33 @@ export default function MessagesPage() {
                 </div>
               </div>
             )}
+            </TabsContent>
+
+            <TabsContent value="notifications" className="flex-1 m-0">
+              <div className="p-4">
+                <NotificationList />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="rules" className="flex-1 m-0">
+              <div className="p-4">
+                <Tabs value="rules-tab" className="h-full flex flex-col">
+                  <TabsList className="grid w-full grid-cols-2 mb-4">
+                    <TabsTrigger value="rules-tab">Rules</TabsTrigger>
+                    <TabsTrigger value="preferences-tab">Preferences</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="rules-tab" className="flex-1">
+                    <NotificationRulesTable />
+                  </TabsContent>
+                  
+                  <TabsContent value="preferences-tab" className="flex-1">
+                    <NotificationPrefsForm />
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </TabsContent>
+            </Tabs>
           </div>
         )}
       </div>

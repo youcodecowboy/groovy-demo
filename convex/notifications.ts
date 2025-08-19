@@ -85,6 +85,66 @@ export const getNotifications = query({
       notifications = notifications.slice(0, args.limit);
     }
 
+    // If no notifications exist, create some sample ones for demo
+    if (notifications.length === 0) {
+      const sampleNotifications = [
+        {
+          userId: args.userId,
+          type: "item.flagged",
+          title: "Item Flagged for Review",
+          message: "Item ITM-001 has been flagged for quality review",
+          itemId: "ITM-001",
+          isRead: false,
+          priority: "warning",
+          createdAt: Date.now() - 300000, // 5 minutes ago
+          metadata: { flaggedBy: "john@example.com", reason: "Quality concern" }
+        },
+        {
+          userId: args.userId,
+          type: "order.completed",
+          title: "Order Completed",
+          message: "Purchase order PO-2024-001 has been completed successfully",
+          orderId: "PO-2024-001",
+          isRead: false,
+          priority: "success",
+          createdAt: Date.now() - 1800000, // 30 minutes ago
+          metadata: { completedBy: "jane@example.com", completionTime: "2.5 hours" }
+        },
+        {
+          userId: args.userId,
+          type: "materials.lowstock",
+          title: "Materials Low Stock Alert",
+          message: "Cotton fabric is running low (5 units remaining)",
+          isRead: true,
+          priority: "medium",
+          createdAt: Date.now() - 7200000, // 2 hours ago
+          metadata: { materialId: "MAT-001", currentStock: 5, reorderPoint: 10 }
+        },
+        {
+          userId: args.userId,
+          type: "message.inbound",
+          title: "New Message from Factory",
+          message: "Factory ABC has sent a message regarding order PO-2024-002",
+          isRead: true,
+          priority: "info",
+          createdAt: Date.now() - 14400000, // 4 hours ago
+          metadata: { senderId: "factory@abc.com", orderId: "PO-2024-002" }
+        }
+      ];
+
+      // Insert sample notifications
+      for (const notification of sampleNotifications) {
+        await ctx.db.insert("notifications", notification);
+      }
+
+      // Return the newly created notifications
+      notifications = await ctx.db
+        .query("notifications")
+        .withIndex("by_user", (q) => q.eq("userId", args.userId))
+        .order("desc")
+        .collect();
+    }
+
     return notifications;
   },
 });
@@ -244,5 +304,196 @@ export const createSystemNotification = mutation({
     });
 
     return notificationIds;
+  },
+});
+
+// Get notification rules for a user
+export const getNotificationRules = query({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // TODO: Implement when notification rules table is added to schema
+    // For now, return mock data
+    return [
+      {
+        _id: "rule1",
+        name: "Item Stuck Alert",
+        description: "Alert when items are stuck in a stage for more than 4 hours",
+        kind: "item.stuck",
+        severity: "warning",
+        channels: ["inApp"],
+        recipients: [args.userId],
+        conditions: { stageTimeoutHours: 4 },
+        isEnabled: true,
+        lastTriggeredAt: Date.now() - 3600000, // 1 hour ago
+      },
+      {
+        _id: "rule2", 
+        name: "Order Behind Schedule",
+        description: "Alert when orders are behind schedule by more than 12 hours",
+        kind: "order.behind",
+        severity: "high",
+        channels: ["inApp", "email"],
+        recipients: [args.userId],
+        conditions: { lateByHours: 12 },
+        isEnabled: true,
+        lastTriggeredAt: undefined,
+      },
+      {
+        _id: "rule3",
+        name: "Materials Low Stock",
+        description: "Alert when materials are below 10 units",
+        kind: "materials.lowstock", 
+        severity: "medium",
+        channels: ["inApp"],
+        recipients: [args.userId],
+        conditions: { belowQty: 10 },
+        isEnabled: false,
+        lastTriggeredAt: undefined,
+      }
+    ];
+  },
+});
+
+// Create notification rule
+export const createNotificationRule = mutation({
+  args: {
+    name: v.string(),
+    description: v.optional(v.string()),
+    kind: v.string(),
+    severity: v.optional(v.string()),
+    channels: v.array(v.string()),
+    recipients: v.array(v.string()),
+    conditions: v.any(),
+    isEnabled: v.boolean(),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // TODO: Implement when notification rules table is added to schema
+    // For now, just log the activity
+    await ctx.db.insert("activityLog", {
+      userId: args.userId,
+      action: "notification_rule_created",
+      entityType: "notification",
+      description: `Notification rule created: ${args.name}`,
+      metadata: { 
+        kind: args.kind,
+        severity: args.severity,
+        channels: args.channels,
+        recipientCount: args.recipients.length,
+        conditions: args.conditions
+      },
+      timestamp: Date.now(),
+    });
+
+    return "rule_created";
+  },
+});
+
+// Update notification rule
+export const updateNotificationRule = mutation({
+  args: {
+    ruleId: v.string(),
+    name: v.string(),
+    description: v.optional(v.string()),
+    kind: v.string(),
+    severity: v.optional(v.string()),
+    channels: v.array(v.string()),
+    recipients: v.array(v.string()),
+    conditions: v.any(),
+    isEnabled: v.boolean(),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // TODO: Implement when notification rules table is added to schema
+    await ctx.db.insert("activityLog", {
+      userId: args.userId,
+      action: "notification_rule_updated",
+      entityType: "notification",
+      description: `Notification rule updated: ${args.name}`,
+      metadata: { 
+        ruleId: args.ruleId,
+        kind: args.kind,
+        severity: args.severity,
+        channels: args.channels,
+        recipientCount: args.recipients.length,
+        conditions: args.conditions
+      },
+      timestamp: Date.now(),
+    });
+
+    return "rule_updated";
+  },
+});
+
+// Toggle notification rule
+export const toggleNotificationRule = mutation({
+  args: {
+    ruleId: v.string(),
+    userId: v.string(),
+    enabled: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    // TODO: Implement when notification rules table is added to schema
+    await ctx.db.insert("activityLog", {
+      userId: args.userId,
+      action: "notification_rule_toggled",
+      entityType: "notification",
+      description: `Notification rule ${args.enabled ? 'enabled' : 'disabled'}`,
+      metadata: { 
+        ruleId: args.ruleId,
+        enabled: args.enabled
+      },
+      timestamp: Date.now(),
+    });
+
+    return "rule_toggled";
+  },
+});
+
+// Delete notification rule
+export const deleteNotificationRule = mutation({
+  args: {
+    ruleId: v.string(),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // TODO: Implement when notification rules table is added to schema
+    await ctx.db.insert("activityLog", {
+      userId: args.userId,
+      action: "notification_rule_deleted",
+      entityType: "notification",
+      description: `Notification rule deleted`,
+      metadata: { 
+        ruleId: args.ruleId
+      },
+      timestamp: Date.now(),
+    });
+
+    return "rule_deleted";
+  },
+});
+
+// Update notification preferences
+export const updateNotificationPreferences = mutation({
+  args: {
+    userId: v.string(),
+    preferences: v.any(),
+  },
+  handler: async (ctx, args) => {
+    // TODO: Implement when notification preferences table is added to schema
+    await ctx.db.insert("activityLog", {
+      userId: args.userId,
+      action: "notification_preferences_updated",
+      entityType: "notification",
+      description: `Notification preferences updated`,
+      metadata: { 
+        preferences: args.preferences
+      },
+      timestamp: Date.now(),
+    });
+
+    return "preferences_updated";
   },
 }); 

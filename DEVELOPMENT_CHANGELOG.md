@@ -1,6 +1,497 @@
 # Development Changelog
 
-## [Latest] - Star Wars Themed Demo Data System
+## [Latest] - Data Model Documentation
+**Date**: December 2024
+**Type**: Documentation & Architecture
+
+### 🎯 **Comprehensive Data Model Documentation**
+
+#### **Overview:**
+Created comprehensive data model documentation for backend engineers to build the complete Groovy platform backend system. The documentation covers all core entities, relationships, business rules, and integration points needed for full system implementation.
+
+#### **Documentation Structure:**
+
+##### **Data Models Directory**
+```
+data-models/
+├── README.md                    // Overall architecture and relationships
+├── orders.md                    // Orders data model and business logic
+├── workflows.md                 // Workflows data model and production rules
+├── items.md                     // Items data model and tracking
+├── materials.md                 // Materials data model and inventory
+├── teams.md                     // Teams data model and management
+├── customers.md                 // Customers data model and CRM
+├── messaging.md                 // Messaging data model and communication
+├── reports-analytics.md         // Reports and analytics data model
+└── disco.md                     // Disco system data model for mobile operations
+```
+
+##### **Orders Data Model**
+- **Core Entity**: PurchaseOrder with comprehensive field definitions
+- **Key Relationships**: Brand, Factory, Workflow, Materials, Items
+- **Business Rules**: Status lifecycle, validation rules, access patterns
+- **API Endpoints**: Complete CRUD and business operation endpoints
+- **Integration Points**: Item creation, material management, workflow execution
+
+##### **Workflows Data Model**
+- **Core Entity**: Workflow with configurable stages and actions
+- **Stage Types**: Linear, parallel, and conditional stage configurations
+- **Action Types**: Scan, photo, note, approval, measurement, inspection
+- **Business Logic**: Stage progression rules, action completion validation
+- **Template System**: Reusable workflow templates with version control
+
+##### **Items Data Model**
+- **Core Entity**: Item with QR code tracking and stage progression
+- **Lifecycle Management**: Creation, production flow, completion states
+- **Quality Management**: Defect tracking, rework processes, quality controls
+- **Location Tracking**: Physical location management and constraints
+- **History Tracking**: Complete audit trail of stage transitions and actions
+
+##### **Materials Data Model**
+- **Core Entities**: Material, MaterialLot, MaterialMovement, Location
+- **Inventory Management**: Stock levels, reorder points, lot tracking
+- **Movement Types**: Receipt, issue, transfer, adjust operations
+- **Cost Management**: Unit costs, cost allocation, variance analysis
+- **Location Hierarchy**: Warehouse, room, rack, bin organization
+
+##### **Teams Data Model**
+- **Core Entity**: Team with member management and performance tracking
+- **Team Management**: Member roles, responsibilities, and permissions
+- **Performance Tracking**: Team metrics, efficiency, and capacity utilization
+- **Scheduling**: Shift management and availability tracking
+- **Assignment Management**: Workflow and location assignments
+
+##### **Customers Data Model**
+- **Core Entities**: Customer, CustomerContact, CustomerInteraction, CustomerQuote
+- **Customer Lifecycle**: Prospect, lead, active, inactive status management
+- **Lead Management**: Lead scoring, qualification, and conversion tracking
+- **Interaction Tracking**: Complete customer touchpoint history
+- **Value Management**: Customer lifetime value and churn risk analysis
+
+##### **Messaging Data Model**
+- **Core Entity**: Message with real-time communication capabilities
+- **Message Types**: Direct, team, system, alert, and file messages
+- **Threading**: Conversation management and message threading
+- **Priority Management**: Message priority and urgency handling
+- **Integration**: Links to production entities and brand-factory communication
+
+##### **Reports & Analytics Data Model**
+- **Core Entities**: Report, Metric, ReportExecution, Dashboard
+- **Report Management**: Scheduled, on-demand, and automated reporting
+- **Metric Categories**: Production, quality, financial, and operational metrics
+- **Dashboard System**: Configurable dashboards with widgets and layouts
+- **Analytics**: Real-time analytics, trend analysis, and performance insights
+
+##### **Disco System Data Model**
+- **Core Entities**: DiscoSession, DiscoScan, DiscoAction, DiscoQueue
+- **Mobile-First**: QR scanning, touch interface, and offline capability
+- **Session Management**: Active work sessions with performance tracking
+- **Queue Management**: Item prioritization and workload distribution
+- **Action Completion**: Workflow actions with photos, notes, and measurements
+
+#### **Key Features Documented:**
+
+##### **Multi-Tenant Architecture**
+- Organization-based data isolation
+- Role-based access control patterns
+- Tenant-specific configurations
+- Performance optimization strategies
+
+##### **Business Workflows**
+- Order creation and processing flows
+- Production execution and tracking
+- Material management and consumption
+- Quality control and defect management
+
+##### **Integration Points**
+- External system integrations (ERP, accounting, suppliers)
+- Internal system connections (messaging, notifications, reporting)
+- Mobile app integration for field operations
+- Real-time data synchronization
+
+##### **Performance Considerations**
+- Database indexing strategies
+- Query optimization patterns
+- Caching strategies
+- Scalability planning
+
+##### **Security & Compliance**
+- Data protection and encryption
+- Access control and permissions
+- Audit logging and compliance
+- Industry standard compliance
+
+#### **Technical Specifications:**
+
+##### **API Design Guidelines**
+- RESTful API endpoints for all entities
+- GraphQL considerations for complex queries
+- Webhook integration for real-time updates
+- Rate limiting and security measures
+
+##### **Database Design**
+- Schema definitions with TypeScript interfaces
+- Indexing strategies for performance
+- Data integrity constraints
+- Migration and deployment strategies
+
+##### **Error Handling**
+- Common error scenarios and responses
+- Validation rules and business constraints
+- Data consistency requirements
+- Performance optimization guidelines
+
+#### **Development Guidelines:**
+
+##### **Implementation Roadmap**
+1. **Start with Orders**: Core order management functionality
+2. **Add Workflows**: Production rule engine implementation
+3. **Build Items**: Individual item tracking and progression
+4. **Integrate Materials**: Inventory management system
+5. **Add Analytics**: Reporting and performance metrics
+
+##### **Testing Strategy**
+- Unit tests for individual entity operations
+- Integration tests for entity relationships
+- End-to-end tests for complete business workflows
+- Performance tests for scalability validation
+
+#### **Documentation Quality:**
+
+##### **Comprehensive Coverage**
+- **Entity Definitions**: Complete field specifications with types and constraints
+- **Relationship Mapping**: Detailed relationship definitions and cardinality
+- **Business Rules**: All business logic and validation requirements
+- **API Specifications**: Complete endpoint definitions with parameters
+- **Integration Points**: All system integration requirements
+
+##### **Backend Engineer Focus**
+- **Implementation Ready**: All specifications needed for backend development
+- **Database Schema**: Complete table structures and relationships
+- **Business Logic**: All rules and constraints for system behavior
+- **Performance Guidelines**: Optimization strategies and best practices
+- **Security Requirements**: Access control and data protection specifications
+
+---
+
+## [Previous] - Usage & Billing System
+**Date**: December 2024
+**Type**: Major Feature Addition
+
+### 🎯 **Complete Usage & Billing System**
+
+#### **Overview:**
+Implemented a comprehensive usage and billing system that tracks usage at $0.10 per record across all core entities (Items, Orders, Materials, Messages, Workflows, Teams, Attachments). The system provides real-time usage monitoring, cost tracking, invoice management, payment processing, and comprehensive billing analytics.
+
+#### **Core Features Implemented:**
+
+##### **Usage Tracking & Analytics**
+- **Per-Record Pricing**: $0.10 per record across all entities (configurable)
+- **Real-time Usage Monitoring**: Live tracking of record creation across all entities
+- **Usage Breakdown**: Detailed breakdown by entity type with percentages and costs
+- **Trend Analysis**: 7-day usage trends with stacked area charts
+- **Forecasting**: Linear extrapolation for end-of-period cost estimates
+- **Period Management**: Monthly billing periods with automatic rollover
+
+##### **Billing Dashboard (Overview)**
+- **Header Cards**: Current period usage, cost to date, forecast, next invoice date
+- **Usage Trend Chart**: Interactive stacked area chart showing daily usage by entity
+- **Usage by Entity Table**: Detailed breakdown with sparklines and cost analysis
+- **Recent Invoices**: Last 3 invoices with quick view and download actions
+- **Active Alerts**: Real-time display of triggered usage and cost alerts
+
+##### **Billing History**
+- **Invoice Management**: Complete invoice history with filtering and search
+- **Invoice Details**: Detailed invoice breakdown with itemized usage
+- **PDF Download**: Invoice download functionality (mock implementation)
+- **Status Tracking**: Paid, pending, and overdue invoice status management
+- **Advanced Filtering**: Filter by status, date range, and search terms
+
+##### **Payment Methods**
+- **Card Management**: Add, edit, remove, and set default payment methods
+- **Stripe Integration**: Optional Stripe Elements integration (feature flag controlled)
+- **Mock Mode**: Fallback implementation when Stripe is disabled
+- **Billing Profile**: Company information, address, and tax ID management
+- **Security**: Secure payment method handling with proper validation
+
+##### **Exports & API**
+- **CSV Exports**: Usage data and invoice exports with configurable date ranges
+- **Webhook Integration**: Real-time invoice and usage event notifications
+- **API Keys**: API key management for programmatic access
+- **Documentation**: API reference and integration guides
+- **Multiple Formats**: CSV, JSON, and Excel export options
+
+##### **Billing Settings**
+- **Alert Management**: Create, edit, and manage usage and cost alerts
+- **Plan Configuration**: Display current plan pricing and billing cycle
+- **Tax Profile**: Company tax information and exemption status
+- **Admin Actions**: Manual period closure and invoice generation
+- **Channel Preferences**: In-app and email notification channels
+
+#### **Technical Implementation:**
+
+##### **Component Architecture**
+```
+components/billing/
+├── billing-header-cards.tsx    // Usage overview cards
+├── usage-trend-chart.tsx       // Interactive usage charts
+├── usage-by-entity-table.tsx   // Entity breakdown table
+├── invoices-table.tsx          // Invoice management table
+├── invoice-drawer.tsx          // Invoice detail view
+├── payment-methods.tsx         // Payment method management
+├── billing-profile-form.tsx    // Billing profile editor
+├── alerts-table.tsx            // Alert management table
+├── alert-modal.tsx             // Alert creation/editing
+└── index.ts                    // Component exports
+```
+
+##### **Page Structure**
+```
+app/app/billing/
+├── page.tsx                    // Overview dashboard
+├── history/page.tsx            // Invoice history
+├── payment/page.tsx            // Payment methods
+├── exports/page.tsx            // Data exports
+├── settings/page.tsx           // Billing settings
+└── layout.tsx                  // Billing navigation
+```
+
+##### **Key Features**
+- **Real-time Updates**: Live usage tracking and cost calculations
+- **Responsive Design**: Mobile-friendly interface with adaptive layouts
+- **Accessibility**: Proper ARIA labels, keyboard navigation, focus management
+- **Performance**: Optimized charts and data loading with caching
+- **Security**: Tenant-scoped data with proper access controls
+
+#### **Usage Tracking Implementation:**
+
+##### **Entity Coverage**
+- **Items**: Production items and their lifecycle events
+- **Orders**: Purchase orders and order management
+- **Materials**: Material tracking and inventory management
+- **Messages**: Communication and messaging records
+- **Workflows**: Workflow definitions and executions
+- **Teams**: Team management and collaboration
+- **Attachments**: File uploads and document management
+
+##### **Cost Calculation**
+- **Base Rate**: $0.10 per record (configurable via PricingPlan.perRecordCents)
+- **Period Aggregation**: Monthly billing periods with automatic rollover
+- **Real-time Math**: Live cost calculations as records are created
+- **Forecasting**: Linear extrapolation based on current usage patterns
+
+#### **User Experience Features:**
+
+##### **Dashboard Analytics**
+- **Visual Metrics**: Clear presentation of usage and cost data
+- **Interactive Charts**: Hover tooltips and detailed breakdowns
+- **Progress Indicators**: Period progress bars and remaining time
+- **Alert Integration**: Real-time alert display and management
+
+##### **Invoice Management**
+- **Quick Actions**: View, download, and manage invoices
+- **Detailed Breakdown**: Itemized usage by entity type
+- **Status Tracking**: Visual status indicators and payment tracking
+- **Export Options**: Multiple format support for invoice data
+
+##### **Payment Processing**
+- **Secure Integration**: Stripe Elements for secure payment processing
+- **Mock Mode**: Demo implementation for development and testing
+- **Card Management**: Full CRUD operations for payment methods
+- **Billing Profile**: Complete company and tax information management
+
+#### **Future Enhancements:**
+- **Stripe Integration**: Full Stripe customer and invoice management
+- **Usage Analytics**: Advanced analytics and reporting
+- **Multi-currency**: Support for multiple currencies
+- **Usage Optimization**: AI-powered usage optimization suggestions
+- **Integration APIs**: Webhook and API endpoints for external systems
+
+---
+
+## [Previous] - Notifications & Messaging Integration System
+**Date**: December 2024
+**Type**: Major Feature Addition
+
+### 🎯 **Complete Notifications & Messaging Integration System**
+
+#### **Overview:**
+Implemented a comprehensive notifications and messaging integration system that extends the existing messaging functionality with advanced notification capabilities, rules engine, and user preferences management. This system provides real-time alerts, configurable notification rules, and a unified messaging experience.
+
+#### **Core Features Implemented:**
+
+##### **Header Notification Bell**
+- **Real-time Badge**: Shows unread notification count with "9+" cap for large numbers
+- **Dropdown Interface**: Quick access to 10 most recent notifications
+- **Mark All Read**: One-click action to mark all notifications as read
+- **Deep Linking**: Click notifications to navigate directly to source entities
+- **Visual Indicators**: Severity dots, icons, and entity badges for quick recognition
+
+##### **Enhanced Messaging Page with Tabs**
+- **Threads Tab**: Existing messaging functionality with conversation management
+- **Notifications Tab**: Comprehensive notification management with filtering and bulk actions
+- **Rules Tab**: Notification rule creation and management
+- **Preferences Tab**: User-level notification preferences and channel settings
+
+##### **Notification Management System**
+- **Advanced Filtering**: Search, kind, severity, unread status, and date range filters
+- **Bulk Actions**: Select multiple notifications for mark as read, delete operations
+- **Real-time Updates**: Live notification updates via Convex subscriptions
+- **Entity Linking**: Notifications link to source items, orders, workflows, or messages
+
+#### **Notification Rules Engine:**
+
+##### **Rule Types Supported**
+- **item.stuck**: Alert when items are stuck in a stage for configurable hours
+- **order.behind**: Alert when orders are behind schedule by specified hours
+- **materials.lowstock**: Alert when materials fall below configured quantities
+- **item.flagged**: Alert when items are flagged for review
+- **item.defective**: Alert when items are marked as defective
+- **message.inbound**: Alert for new inbound messages
+- **order.completed**: Alert when orders are completed
+- **materials.received**: Alert when materials are received
+- **system.alert**: System-wide alerts and notifications
+
+##### **Rule Configuration**
+- **Dynamic Conditions**: Rule-specific condition fields (timeout hours, quantities, etc.)
+- **Channel Selection**: Choose in-app notifications, email, or both
+- **Recipient Management**: Select specific users or roles for notifications
+- **Severity Levels**: Configure notification priority (low, medium, high, urgent)
+- **Enable/Disable**: Toggle rules on/off with immediate effect
+
+#### **User Preferences System:**
+
+##### **Channel Preferences**
+- **In-App Notifications**: Default enabled, show in notification center
+- **Email Notifications**: Default disabled, send email alerts
+- **Channel Toggles**: Individual control over notification channels
+
+##### **Notification Type Preferences**
+- **Per-Type Control**: Enable/disable specific notification types
+- **Visual Interface**: Clear toggles with descriptions for each type
+- **Instant Updates**: Changes take effect immediately
+
+##### **Digest Options**
+- **Daily Digest**: Receive daily summary instead of individual notifications
+- **Weekly Digest**: Receive weekly summary of all notifications
+- **Future-Ready**: Architecture supports additional digest options
+
+#### **Technical Implementation:**
+
+##### **Component Architecture**
+```
+components/notifications/
+├── HeaderBell.tsx              // Header notification bell with dropdown
+├── NotificationRow.tsx         // Individual notification display
+├── NotificationList.tsx        // Filterable notification list
+├── NotificationFilters.tsx     // Advanced filtering interface
+├── NotificationRulesTable.tsx  // Rules management table
+├── NotificationRuleModal.tsx   // Rule creation/editing modal
+├── NotificationPrefsForm.tsx   // User preferences interface
+└── index.ts                    // Component exports
+```
+
+##### **Enhanced Convex Functions**
+- **Extended Notifications API**: Added rule management and preferences functions
+- **Sample Data Generation**: Automatic creation of demo notifications
+- **Real-time Subscriptions**: Live notification updates
+- **Audit Trail**: Complete logging of notification actions
+
+##### **Database Schema Extensions**
+- **Notification Rules**: Support for configurable notification rules
+- **User Preferences**: Per-user notification preferences storage
+- **Enhanced Notifications**: Extended notification types and metadata
+
+#### **User Experience Features:**
+
+##### **Real-time Notifications**
+- **Live Updates**: Notifications appear instantly without page refresh
+- **Badge Updates**: Header badge updates in real-time
+- **Visual Feedback**: Subtle highlighting of new notifications
+- **Sound Alerts**: Browser notification sounds (future enhancement)
+
+##### **Smart Filtering**
+- **Multi-Criteria Filtering**: Combine search, type, severity, and date filters
+- **Active Filter Display**: Visual chips showing active filters
+- **One-Click Clear**: Clear all filters with single button
+- **Persistent Filters**: Filters remember user preferences
+
+##### **Bulk Operations**
+- **Multi-Select**: Checkbox selection for multiple notifications
+- **Bulk Actions**: Mark as read, delete multiple notifications
+- **Progress Feedback**: Real-time feedback on bulk operations
+- **Error Handling**: Graceful handling of partial failures
+
+#### **Integration Points:**
+
+##### **Existing Messaging System**
+- **Seamless Integration**: Notifications work alongside existing messaging
+- **Unified Interface**: Single page for messages and notifications
+- **Context Preservation**: Maintains conversation context when switching tabs
+- **Data Compatibility**: Uses existing message and user data structures
+
+##### **Entity Linking**
+- **Item Navigation**: Click notifications to go directly to item details
+- **Order Navigation**: Navigate to order details from order notifications
+- **Workflow Navigation**: Access workflow details from workflow notifications
+- **Message Threading**: Link to specific message threads
+
+#### **Sample Data & Demo Features:**
+
+##### **Demo Notifications**
+- **Item Flagged**: Sample notification for flagged item review
+- **Order Completed**: Sample notification for completed order
+- **Materials Low Stock**: Sample notification for low inventory
+- **Inbound Message**: Sample notification for new message
+
+##### **Sample Rules**
+- **Item Stuck Alert**: Rule for items stuck in stage for 4+ hours
+- **Order Behind Schedule**: Rule for orders behind by 12+ hours
+- **Materials Low Stock**: Rule for materials below 10 units
+
+#### **Future Enhancements Prepared:**
+
+##### **Advanced Features**
+- **Email Integration**: SMTP integration for email notifications
+- **Push Notifications**: Browser push notifications
+- **Mobile App**: Native mobile notification support
+- **Advanced Analytics**: Notification engagement metrics
+
+##### **Rule Engine Enhancements**
+- **Complex Conditions**: Multi-condition rule logic
+- **Scheduled Rules**: Time-based notification rules
+- **Escalation Rules**: Automatic escalation for urgent notifications
+- **Integration Rules**: Third-party system integration
+
+#### **Benefits Achieved:**
+
+##### **For Users**
+1. **Real-time Awareness**: Immediate notification of important events
+2. **Customizable Experience**: Control over what and how they're notified
+3. **Efficient Management**: Bulk operations and smart filtering
+4. **Context Preservation**: Direct navigation to relevant entities
+
+##### **For Administrators**
+1. **Rule Management**: Configure notification rules for different scenarios
+2. **User Preferences**: Manage notification preferences across users
+3. **Audit Trail**: Complete tracking of notification actions
+4. **System Monitoring**: Visibility into notification system usage
+
+##### **For Developers**
+1. **Extensible Architecture**: Easy to add new notification types
+2. **Component Reusability**: Modular components for different use cases
+3. **Type Safety**: Full TypeScript coverage for all components
+4. **Performance**: Optimized queries and efficient rendering
+
+#### **Technical Benefits:**
+1. **Scalable Architecture**: Handles thousands of notifications efficiently
+2. **Real-time Performance**: Live updates without performance impact
+3. **Maintainable Code**: Clean separation of concerns and modular design
+4. **Future-Ready**: Architecture supports advanced features and integrations
+
+---
+
+## [Previous] - Star Wars Themed Demo Data System
 **Date**: December 2024
 **Type**: Major Feature Addition
 

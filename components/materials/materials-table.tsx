@@ -12,7 +12,8 @@ import {
   ArrowUp,
   ArrowDown,
   ExternalLink,
-  Plus
+  Plus,
+  FileText
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -46,6 +47,7 @@ interface MaterialsTableProps {
   onEditMaterial: (material: Material) => void
   onReceiveMaterial: (material: Material) => void
   onPrintLabel: (material: Material) => void
+  onGeneratePO?: (material: Material) => void
   selectedMaterials: string[]
   onSelectionChange: (materialIds: string[]) => void
 }
@@ -59,6 +61,7 @@ export default function MaterialsTable({
   onEditMaterial,
   onReceiveMaterial,
   onPrintLabel,
+  onGeneratePO,
   selectedMaterials,
   onSelectionChange
 }: MaterialsTableProps) {
@@ -340,6 +343,15 @@ export default function MaterialsTable({
                           Receive
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
+                        {onGeneratePO && (
+                          <>
+                            <DropdownMenuItem onClick={() => onGeneratePO(material)}>
+                              <FileText className="w-4 h-4 mr-2" />
+                              Generate PO
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                          </>
+                        )}
                         <DropdownMenuItem onClick={() => onPrintLabel(material)}>
                           <QrCode className="w-4 h-4 mr-2" />
                           Print Label
