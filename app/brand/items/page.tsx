@@ -11,12 +11,11 @@ import {
     Eye,
     MapPin
 } from "lucide-react"
-import { BrandHeader } from "@/components/brand/brand-header"
+
 
 export default function BrandItems() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <BrandHeader />
       <div className="container mx-auto px-4 py-6 space-y-6">
         {/* Page Header */}
         <div>

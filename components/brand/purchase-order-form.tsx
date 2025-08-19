@@ -1,276 +1,328 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { useMutation, useQuery } from "convex/react"
-import { api } from "@/convex/_generated/api"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Trash2, Calendar } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import { 
+  Factory, 
+  Package, 
+  Calendar, 
+  DollarSign, 
+  Plus, 
+  Trash2,
+  Save,
+  Send
+} from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 
 interface PurchaseOrderItem {
-  sku: string
+  id: string
+  name: string
   quantity: number
+  unitPrice: number
   description: string
-  specifications?: any
 }
 
 export function PurchaseOrderForm() {
   const { toast } = useToast()
-  const createPurchaseOrder = useMutation(api.purchaseOrders.createPurchaseOrder)
-  const factories = useQuery(api.factories.listFactories)
-  const brands = useQuery(api.brands.listBrands)
-
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [items, setItems] = useState<PurchaseOrderItem[]>([
-    { sku: "", quantity: 1, description: "" }
-  ])
   const [formData, setFormData] = useState({
-    factoryId: "",
-    poNumber: "",
-    requestedDeliveryDate: "",
-    notes: "",
+    factoryId: '',
+    poNumber: '',
+    requestedDeliveryDate: '',
+    totalValue: 0,
+    notes: ''
   })
+  const [items, setItems] = useState<PurchaseOrderItem[]>([])
+  const [loading, setLoading] = useState(false)
 
-  const handleAddItem = () => {
-    setItems([...items, { sku: "", quantity: 1, description: "" }])
+  // Mock factory data
+  const factories = [
+    { id: 'fact-001', name: 'Apex Manufacturing', location: 'Detroit, MI' },
+    { id: 'fact-002', name: 'Global Textiles Co.', location: 'Austin, TX' },
+    { id: 'fact-003', name: 'Premium Garments Ltd.', location: 'Los Angeles, CA' }
+  ]
+
+  const addItem = () => {
+    const newItem: PurchaseOrderItem = {
+      id: Date.now().toString(),
+      name: '',
+      quantity: 1,
+      unitPrice: 0,
+      description: ''
+    }
+    setItems([...items, newItem])
   }
 
-  const handleRemoveItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index))
+  const removeItem = (id: string) => {
+    setItems(items.filter(item => item.id !== id))
   }
 
-  const handleItemChange = (index: number, field: keyof PurchaseOrderItem, value: any) => {
-    const newItems = [...items]
-    newItems[index] = { ...newItems[index], [field]: value }
-    setItems(newItems)
+  const updateItem = (id: string, field: keyof PurchaseOrderItem, value: any) => {
+    setItems(items.map(item => 
+      item.id === id ? { ...item, [field]: value } : item
+    ))
   }
 
   const calculateTotal = () => {
-    // For demo purposes, we'll use a simple calculation
-    // In a real app, you'd have actual pricing
-    return items.reduce((total, item) => total + (item.quantity * 250), 0)
+    return items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsSubmitting(true)
-
+    setLoading(true)
+    
     try {
-      // Validate form
-      if (!formData.factoryId || !formData.poNumber || !formData.requestedDeliveryDate) {
-        toast({
-          title: "Missing required fields",
-          description: "Please fill in all required fields",
-          variant: "destructive",
-        })
-        return
-      }
-
-      if (items.some(item => !item.sku || !item.description)) {
-        toast({
-          title: "Missing item details",
-          description: "Please fill in SKU and description for all items",
-          variant: "destructive",
-        })
-        return
-      }
-
-      // Get the first brand (demo setup)
-      const brandId = brands?.[0]?._id
-      if (!brandId) {
-        toast({
-          title: "Error",
-          description: "No brands available",
-          variant: "destructive",
-        })
-        return
-      }
-
-      const poData = {
-        brandId,
-        factoryId: formData.factoryId as any,
-        poNumber: formData.poNumber,
-        items: items.map(item => ({
-          sku: item.sku,
-          quantity: item.quantity,
-          description: item.description,
-          specifications: item.specifications,
-        })),
-        totalValue: calculateTotal(),
-        requestedDeliveryDate: new Date(formData.requestedDeliveryDate).getTime(),
-        notes: formData.notes,
-      }
-
-      const poId = await createPurchaseOrder(poData)
-
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
       toast({
         title: "Purchase Order Created",
-        description: `PO ${formData.poNumber} has been submitted successfully`,
+        description: `PO ${formData.poNumber} has been submitted successfully.`
       })
-
+      
       // Reset form
-      setItems([{ sku: "", quantity: 1, description: "" }])
       setFormData({
-        factoryId: "",
-        poNumber: "",
-        requestedDeliveryDate: "",
-        notes: "",
+        factoryId: '',
+        poNumber: '',
+        requestedDeliveryDate: '',
+        totalValue: 0,
+        notes: ''
       })
-
+      setItems([])
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to create purchase order",
-        variant: "destructive",
+        description: "Failed to create purchase order. Please try again.",
+        variant: "destructive"
       })
     } finally {
-      setIsSubmitting(false)
+      setLoading(false)
     }
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Create New Purchase Order</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Information */}
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Basic Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Factory className="w-5 h-5" />
+            Basic Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="poNumber">PO Number *</Label>
-              <Input
-                id="poNumber"
-                value={formData.poNumber}
-                onChange={(e) => setFormData({ ...formData, poNumber: e.target.value })}
-                placeholder="PO-2024-001"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="factory">Factory *</Label>
-              <Select value={formData.factoryId} onValueChange={(value) => setFormData({ ...formData, factoryId: value })}>
+            <div className="space-y-2">
+              <Label htmlFor="factory">Factory</Label>
+              <Select value={formData.factoryId} onValueChange={(value) => setFormData({...formData, factoryId: value})}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select factory" />
+                  <SelectValue placeholder="Select a factory" />
                 </SelectTrigger>
                 <SelectContent>
-                  {factories?.map((factory) => (
-                    <SelectItem key={factory._id} value={factory._id}>
-                      {factory.name} - {factory.location}
+                  {factories.map((factory) => (
+                    <SelectItem key={factory.id} value={factory.id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{factory.name}</span>
+                        <span className="text-sm text-gray-500">{factory.location}</span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label htmlFor="deliveryDate">Requested Delivery Date *</Label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  id="deliveryDate"
-                  type="date"
-                  value={formData.requestedDeliveryDate}
-                  onChange={(e) => setFormData({ ...formData, requestedDeliveryDate: e.target.value })}
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="totalValue">Total Value</Label>
+            
+            <div className="space-y-2">
+              <Label htmlFor="poNumber">PO Number</Label>
               <Input
-                id="totalValue"
-                value={`$${calculateTotal().toLocaleString()}`}
-                disabled
-                className="bg-gray-50"
+                id="poNumber"
+                placeholder="PO-2024-XXX"
+                value={formData.poNumber}
+                onChange={(e) => setFormData({...formData, poNumber: e.target.value})}
               />
             </div>
           </div>
-
-          {/* Items */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <Label>Order Items</Label>
-              <Button type="button" variant="outline" size="sm" onClick={handleAddItem}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Item
-              </Button>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="deliveryDate">Requested Delivery Date</Label>
+              <Input
+                id="deliveryDate"
+                type="date"
+                value={formData.requestedDeliveryDate}
+                onChange={(e) => setFormData({...formData, requestedDeliveryDate: e.target.value})}
+              />
             </div>
-            <div className="space-y-4">
-              {items.map((item, index) => (
-                <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg">
-                  <div>
-                    <Label>SKU *</Label>
-                    <Input
-                      value={item.sku}
-                      onChange={(e) => handleItemChange(index, "sku", e.target.value)}
-                      placeholder="SKU-123"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label>Quantity *</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) => handleItemChange(index, "quantity", parseInt(e.target.value))}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label>Description *</Label>
-                    <Input
-                      value={item.description}
-                      onChange={(e) => handleItemChange(index, "description", e.target.value)}
-                      placeholder="Product description"
-                      required
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleRemoveItem(index)}
-                      disabled={items.length === 1}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                placeholder="Additional notes or special requirements..."
+                value={formData.notes}
+                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Order Items */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="w-5 h-5" />
+            Order Items
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {items.map((item, index) => (
+            <div key={item.id} className="border rounded-lg p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium">Item {index + 1}</h4>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => removeItem(item.id)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Item Name</Label>
+                  <Input
+                    placeholder="e.g., Cotton T-Shirt"
+                    value={item.name}
+                    onChange={(e) => updateItem(item.id, 'name', e.target.value)}
+                  />
                 </div>
-              ))}
+                
+                <div className="space-y-2">
+                  <Label>Quantity</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={item.quantity}
+                    onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 0)}
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Unit Price ($)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={item.unitPrice}
+                    onChange={(e) => updateItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Textarea
+                    placeholder="Item specifications, materials, etc."
+                    value={item.description}
+                    onChange={(e) => updateItem(item.id, 'description', e.target.value)}
+                  />
+                </div>
+              </div>
+              
+              <div className="flex justify-end">
+                <Badge variant="secondary">
+                  Total: ${(item.quantity * item.unitPrice).toFixed(2)}
+                </Badge>
+              </div>
             </div>
-          </div>
+          ))}
+          
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addItem}
+            className="w-full"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Item
+          </Button>
+        </CardContent>
+      </Card>
 
-          {/* Notes */}
-          <div>
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Additional notes for the factory..."
-              rows={3}
-            />
-          </div>
+      {/* Order Summary */}
+      {items.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5" />
+              Order Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-medium">Total Items:</span>
+                <span className="text-lg">{items.length}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-medium">Total Quantity:</span>
+                <span className="text-lg">{items.reduce((sum, item) => sum + item.quantity, 0)}</span>
+              </div>
+              <div className="flex justify-between items-center border-t pt-4">
+                <span className="text-xl font-bold">Total Value:</span>
+                <span className="text-xl font-bold text-green-600">
+                  ${calculateTotal().toFixed(2)}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-          {/* Submit */}
-          <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline">
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creating..." : "Create Purchase Order"}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+      {/* Submit Buttons */}
+      <div className="flex gap-4 justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            setFormData({
+              factoryId: '',
+              poNumber: '',
+              requestedDeliveryDate: '',
+              totalValue: 0,
+              notes: ''
+            })
+            setItems([])
+          }}
+        >
+          Reset
+        </Button>
+        <Button
+          type="submit"
+          disabled={loading || items.length === 0 || !formData.factoryId || !formData.poNumber}
+          className="bg-black hover:bg-gray-800"
+        >
+          {loading ? (
+            <>
+              <Save className="w-4 h-4 mr-2" />
+              Creating...
+            </>
+          ) : (
+            <>
+              <Send className="w-4 h-4 mr-2" />
+              Create Purchase Order
+            </>
+          )}
+        </Button>
+      </div>
+    </form>
   )
-} 
+}

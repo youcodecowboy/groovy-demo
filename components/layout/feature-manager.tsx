@@ -169,12 +169,16 @@ interface FeatureManagerProps {
   onFeatureToggle?: (featureId: string, enabled: boolean) => void
   enabledFeatures?: string[]
   onFeaturesChange?: (features: string[]) => void
+  size?: 'default' | 'small'
+  hideButton?: boolean
 }
 
 export function FeatureManager({ 
   onFeatureToggle, 
   enabledFeatures = [], 
-  onFeaturesChange 
+  onFeaturesChange,
+  size = 'default',
+  hideButton = false
 }: FeatureManagerProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null)
@@ -191,6 +195,17 @@ export function FeatureManager({
       } catch (e) {
         console.error('Failed to parse saved features:', e)
       }
+    }
+
+    // Listen for custom event to open dialog
+    const handleOpenFeatureManager = () => {
+      setIsOpen(true)
+    }
+
+    window.addEventListener('open-feature-manager', handleOpenFeatureManager)
+
+    return () => {
+      window.removeEventListener('open-feature-manager', handleOpenFeatureManager)
     }
   }, [])
 
@@ -246,20 +261,24 @@ export function FeatureManager({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button 
-          variant="outline" 
-          className="w-full justify-between h-12 px-4 rounded-md border-2 border-black/10 bg-white hover:bg-gray-50"
+      {!hideButton && (
+        <DialogTrigger asChild>
+                  <Button 
+          variant="ghost" 
+          className={`w-full justify-between rounded-md hover:bg-gray-50 ${
+            size === 'small' ? 'h-10 px-4' : 'h-12 px-4'
+          }`}
         >
           <div className="flex items-center gap-3">
-            <Plus className="h-5 w-5" />
-            <span className="text-base font-semibold">Add Features</span>
+            <Plus className={`${size === 'small' ? 'h-5 w-5' : 'h-5 w-5'} text-blue-600`} />
+            <span className={`font-semibold text-gray-800 ${size === 'small' ? 'text-sm' : 'text-base'}`}>Add Features</span>
           </div>
-          <Badge variant="secondary" className="text-xs">
+          <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-700 border-gray-300">
             {availableFeatures.length}
           </Badge>
         </Button>
-      </DialogTrigger>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-6xl h-[85vh] p-0 flex flex-col">
         <div className="flex flex-1 min-h-0">
           {/* Sidebar with feature list */}

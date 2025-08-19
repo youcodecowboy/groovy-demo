@@ -16,7 +16,7 @@ import {
   Clock,
   MoreHorizontal,
   Check,
-  Snooze,
+  Timer,
   Trash2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -230,10 +230,10 @@ export function NotificationRow({ notification, onClick, compact = false, showAc
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleSnooze}>
-                    <Snooze className="h-4 w-4 mr-2" />
-                    Snooze
-                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={handleSnooze}>
+                  <Timer className="h-4 w-4 mr-2" />
+                  Snooze
+                </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleDelete} className="text-red-600">
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete

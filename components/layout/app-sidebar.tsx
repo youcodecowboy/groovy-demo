@@ -19,6 +19,7 @@ import {
     SidebarInset,
     SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { Badge } from "@/components/ui/badge"
 import { 
     Home, 
     Workflow, 
@@ -39,7 +40,27 @@ import {
     WashingMachine,
     Archive,
     Package2,
-    Bell
+    Bell,
+    Plus,
+    Wrench,
+    Database,
+    Shield,
+    QrCode,
+    Barcode,
+    Tag,
+    Hash,
+    Receipt,
+    ShoppingCart,
+    Plane,
+    ClipboardList,
+    FileCheck,
+    Calculator,
+    DollarSign,
+    Clock,
+    AlertTriangle,
+    TrendingUp,
+    PackageCheck,
+    Percent
 } from "lucide-react"
 import { SignedIn, UserButton } from "@/components/ui/mock-auth-components"
 import { FeatureManager } from "./feature-manager"
@@ -59,30 +80,49 @@ const featureConfig = {
   "product-archive": { name: "Product Archive", icon: Archive, href: "/app/product-archive" }
 }
 
-const coreNavigation = [
-  {
-    title: "Core",
-    items: [
-      { name: "Home", href: "/app", icon: Home, exact: true },
-      { name: "Workflows", href: "/app/workflows", icon: Workflow },
-      { name: "Items", href: "/app/items", icon: Package },
-      { name: "Materials", href: "/materials", icon: Package2 },
-      { name: "Teams", href: "/app/teams", icon: Users },
-      { name: "Customers", href: "/app/customers", icon: Users2 },
-      { name: "Orders", href: "/app/orders", icon: FileText },
-      { name: "Reports", href: "/app/reports", icon: BarChart3 },
-      { name: "Messages", href: "/app/messages", icon: MessageSquare },
-      { name: "Usage & Billing", href: "/app/billing", icon: Settings },
-    ],
-  },
-  {
-    title: "Disco",
-    items: [
-      { name: "Floor App", href: "/disco", icon: Zap },
-      { name: "Configuration", href: "/disco/config", icon: Cog },
-    ],
-  },
-]
+// Navigation organized by tabs with colors
+const tabNavigation = {
+  core: [
+    { name: "Home", href: "/app", icon: Home, exact: true, color: "text-blue-600" },
+    { name: "Workflows", href: "/app/workflows", icon: Workflow, exact: false, color: "text-purple-600" },
+    { name: "Items", href: "/app/items", icon: Package, exact: false, color: "text-green-600" },
+    { name: "Materials", href: "/materials", icon: Package2, exact: false, color: "text-orange-600" },
+    { name: "Teams", href: "/app/teams", icon: Users, exact: false, color: "text-indigo-600" },
+    { name: "Customers", href: "/app/customers", icon: Users2, exact: false, color: "text-teal-600" },
+    { name: "Orders", href: "/app/orders", icon: FileText, exact: false, color: "text-red-600" },
+    { name: "Reports", href: "/app/reports", icon: BarChart3, exact: false, color: "text-emerald-600" },
+    { name: "Messages", href: "/app/messages", icon: MessageSquare, exact: false, color: "text-cyan-600" },
+    { name: "Usage & Billing", href: "/app/billing", icon: Settings, exact: false, color: "text-gray-600" },
+  ],
+  disco: [
+    { name: "Floor App", href: "/disco", icon: Zap, exact: false, color: "text-yellow-600" },
+    { name: "Configuration", href: "/disco/config", icon: Cog, exact: false, color: "text-slate-600" },
+  ],
+  utilities: [
+    // Document Generators
+    { name: "Invoice Generator", href: "/app/invoice-generator", icon: Receipt, exact: false, color: "text-blue-600" },
+    { name: "PO Generator", href: "/app/po-generator", icon: ShoppingCart, exact: false, color: "text-green-600" },
+    { name: "AWB Generator", href: "/app/awb-generator", icon: Plane, exact: false, color: "text-cyan-600" },
+    { name: "Packing List", href: "/app/packing-list-generator", icon: ClipboardList, exact: false, color: "text-orange-600" },
+    { name: "Compliance Docs", href: "/app/compliance-templates", icon: FileCheck, exact: false, color: "text-purple-600" },
+    
+    // Label & Inventory Tools
+    { name: "QR Generator", href: "/app/qr-generator", icon: QrCode, exact: false, color: "text-indigo-600" },
+    { name: "Barcode Generator", href: "/app/barcode-generator", icon: Barcode, exact: false, color: "text-emerald-600" },
+    { name: "Label Generator", href: "/app/label-generator", icon: Tag, exact: false, color: "text-amber-600" },
+    { name: "Batch Generator", href: "/app/batch-generator", icon: Hash, exact: false, color: "text-slate-600" },
+    { name: "Inventory Labels", href: "/app/inventory-labels", icon: PackageCheck, exact: false, color: "text-teal-600" },
+    
+    // Calculators & Estimators
+    { name: "Material Calculator", href: "/app/material-calculator", icon: Calculator, exact: false, color: "text-red-600" },
+    { name: "Cost Estimator", href: "/app/cost-estimator", icon: DollarSign, exact: false, color: "text-green-600" },
+    { name: "Stock Reconciliation", href: "/app/stock-reconciliation", icon: TrendingUp, exact: false, color: "text-blue-600" },
+    { name: "Profit Calculator", href: "/app/profit-calculator", icon: Calculator, exact: false, color: "text-emerald-600" },
+    { name: "On-Time Calculator", href: "/app/on-time-calculator", icon: Clock, exact: false, color: "text-orange-600" },
+    { name: "Labor Estimator", href: "/app/labor-estimator", icon: Users, exact: false, color: "text-purple-600" },
+    { name: "Defect Calculator", href: "/app/defect-calculator", icon: AlertTriangle, exact: false, color: "text-red-600" },
+  ]
+}
 
 interface AppSidebarProps {
   children: React.ReactNode
@@ -91,6 +131,7 @@ interface AppSidebarProps {
 export function AppSidebar({ children }: AppSidebarProps) {
   const pathname = usePathname()
   const [enabledFeatures, setEnabledFeatures] = useState<string[]>([])
+  const [activeTab, setActiveTab] = useState<'core' | 'disco' | 'utilities'>('core')
 
   // Load enabled features from localStorage on mount and listen for changes
   useEffect(() => {
@@ -135,8 +176,6 @@ export function AppSidebar({ children }: AppSidebarProps) {
     // Here you would typically make an API call to enable/disable the feature
   }
 
-
-
   // Generate dynamic feature navigation
   const generateFeatureNavigation = () => {
     const featureItems = enabledFeatures
@@ -149,69 +188,119 @@ export function AppSidebar({ children }: AppSidebarProps) {
           icon: config.icon,
           exact: false,
           isFeature: true,
-          featureId
+          featureId,
+          color: "text-blue-600"
         }
       })
 
-    if (featureItems.length === 0) return []
-
-    return [
-      {
-        title: "Features",
-        items: featureItems
-      }
-    ]
+    return featureItems
   }
 
-  const allNavigation = [...coreNavigation, ...generateFeatureNavigation()]
+  const getCurrentNavigation = () => {
+    const baseNavigation = tabNavigation[activeTab]
+    
+    // Start with Add Features at the top
+    let navigation = [{
+      name: "Add Features",
+      href: "#",
+      icon: Plus,
+      exact: false,
+      color: "text-blue-600"
+    }]
+    
+    // Add the base navigation items
+    navigation = [...navigation, ...baseNavigation]
+    
+    // Add features to core tab if they exist
+    if (activeTab === 'core') {
+      const featureItems = generateFeatureNavigation()
+      if (featureItems.length > 0) {
+        navigation = [...navigation, ...featureItems]
+      }
+    }
+    
+    return navigation
+  }
+
+  const currentNavigation = getCurrentNavigation()
 
   return (
     <SidebarProvider defaultOpen>
-      <Sidebar className="bg-[#F7F8FB] border-r">
-        <SidebarHeader className="border-b px-6 h-16 bg-white">
+              <Sidebar className="bg-[#F7F8FB] border-r-2 border-black w-64 !border-r-2 !border-black">
+        <SidebarHeader className="border-b-2 border-black px-6 h-16 bg-white">
           <div className="flex items-center justify-between h-full">
             <Image src="/groovy-logo.png" alt="Groovy" width={150} height={45} className="h-10 w-auto" />
           </div>
         </SidebarHeader>
-        <SidebarContent className="px-4 py-6 flex flex-col h-full">
-          {/* Add Features Button */}
-          <div className="mb-4 flex-shrink-0">
-            <FeatureManager 
-              onFeatureToggle={handleFeatureToggle}
-            />
+        <SidebarContent className="px-4 py-0 flex flex-col h-full">
+          {/* Tab Navigation - Full Width */}
+          <div className="flex-shrink-0 -mx-4">
+            <div className="flex bg-white border-b-2 border-black">
+              {(['core', 'disco', 'utilities'] as const).map((tab, index) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex-1 px-3 py-2 text-xs font-semibold transition-colors ${
+                    activeTab === tab
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                  } ${index > 0 ? 'border-l-2 border-black' : ''}`}
+                >
+                  {tab.toUpperCase()}
+                </button>
+              ))}
+            </div>
           </div>
 
+
+
           <div className="flex-1 overflow-y-auto min-h-0">
-            {allNavigation.map((section) => (
-              <SidebarGroup key={section.title} className="mb-6">
-                <SidebarGroupLabel className="mb-2">
-                  <span className="inline-flex items-center rounded-full border border-black/10 bg-gray-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-gray-800">
-                    {section.title}
-                  </span>
-                </SidebarGroupLabel>
-                <SidebarGroupContent>
+            <SidebarGroup className="mb-6 pt-4">
+                              <SidebarGroupContent>
                   <SidebarMenu className="space-y-0">
-                    {section.items.map((item) => (
+                    {currentNavigation.map((item) => (
                       <SidebarMenuItem key={item.name}>
                         <SidebarMenuButton
-                          asChild
+                          asChild={item.name !== "Add Features"}
                           isActive={item.exact ? pathname === item.href : pathname.startsWith(item.href)}
-                          className="h-10 px-4 rounded-md border-l-2 data-[active=true]:bg-white data-[active=true]:shadow-sm data-[active=true]:border-black hover:bg-white"
+                          className="h-10 px-3 mx-1 rounded-md data-[active=true]:bg-white data-[active=true]:shadow-sm data-[active=true]:border-l-4 data-[active=true]:border-blue-600 hover:bg-white hover:border-l-4 hover:border-gray-300 transition-all duration-200"
+                          onClick={item.name === "Add Features" ? () => {
+                            // Open the feature manager dialog
+                            const event = new CustomEvent('open-feature-manager')
+                            window.dispatchEvent(event)
+                          } : undefined}
                         >
-                          <Link href={item.href} className="flex items-center gap-3">
-                            <item.icon className="h-5 w-5" />
-                            <span className="text-sm font-semibold">{item.name}</span>
-                          </Link>
+                          {item.name === "Add Features" ? (
+                            <div className="flex items-center gap-2">
+                              <item.icon className={`h-5 w-5 ${item.color || 'text-gray-600'}`} />
+                              <span className="text-sm font-semibold text-gray-800">{item.name}</span>
+                            </div>
+                          ) : (
+                            <Link href={item.href} className="flex items-center gap-2">
+                              <item.icon className={`h-5 w-5 ${item.color || 'text-gray-600'}`} />
+                              <span className="text-sm font-semibold text-gray-800">{item.name}</span>
+                            </Link>
+                          )}
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     ))}
                   </SidebarMenu>
                 </SidebarGroupContent>
-              </SidebarGroup>
-            ))}
+            </SidebarGroup>
           </div>
 
-          <div className="mt-6 border-t pt-4 flex-shrink-0">
+          {/* Tab Description - Bottom Left */}
+          <div className="mt-auto mb-4 flex-shrink-0">
+            <div className="px-6">
+              <p className="text-xs text-gray-600 italic text-left">
+                {activeTab === 'core' && "Core application features and workflows"}
+                {activeTab === 'disco' && "Floor operations and configuration tools"}
+                {activeTab === 'utilities' && "System settings and administrative tools"}
+              </p>
+            </div>
+          </div>
+
+          <div className="border-t-2 border-black pt-4 flex-shrink-0 -mx-4">
             <SignedIn>
               <div className="px-2">
                 <span className="text-sm text-gray-600 italic mb-2 block">Account</span>
@@ -219,10 +308,18 @@ export function AppSidebar({ children }: AppSidebarProps) {
               </div>
             </SignedIn>
           </div>
+
+          {/* Hidden FeatureManager for dialog */}
+          <div className="hidden">
+            <FeatureManager 
+              onFeatureToggle={handleFeatureToggle}
+              hideButton={true}
+            />
+          </div>
         </SidebarContent>
       </Sidebar>
       <SidebarInset className="flex-1">
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-white px-8 md:px-10">
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b-2 border-black bg-white px-8 md:px-10">
           <SidebarTrigger className="-ml-1" />
           <div className="flex-1" />
           <HeaderBell />

@@ -1,7 +1,5 @@
 "use client"
 
-import { useQuery } from "convex/react"
-import { api } from "@/convex/_generated/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -14,30 +12,71 @@ import {
     AlertCircle, TrendingUp, FileText,
     MessageSquare
 } from "lucide-react"
-import { BrandHeader } from "@/components/brand/brand-header"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
+
+// Mock data for purchase order details
+const mockPurchaseOrder = {
+  _id: "po-001",
+  poNumber: "PO-2024-001",
+  factoryId: "fact-001",
+  workflowId: "wf-001",
+  status: "accepted",
+  totalValue: 45000,
+  requestedDeliveryDate: "2024-02-15",
+  createdAt: "2024-01-15",
+  acceptedAt: "2024-01-16"
+}
+
+const mockItems = [
+  {
+    _id: "item-001",
+    name: "Cotton T-Shirt",
+    status: "active",
+    quantity: 500,
+    completed: 350,
+    purchaseOrderId: "po-001"
+  },
+  {
+    _id: "item-002", 
+    name: "Denim Jeans",
+    status: "completed",
+    quantity: 300,
+    completed: 300,
+    purchaseOrderId: "po-001"
+  },
+  {
+    _id: "item-003",
+    name: "Hoodie",
+    status: "active", 
+    quantity: 200,
+    completed: 120,
+    purchaseOrderId: "po-001"
+  }
+]
+
+const mockFactories = [
+  { _id: "fact-001", name: "Apex Manufacturing" },
+  { _id: "fact-002", name: "Global Textiles Co." },
+  { _id: "fact-003", name: "Premium Garments Ltd." }
+]
+
+const mockWorkflows = [
+  { _id: "wf-001", name: "Standard Production" },
+  { _id: "wf-002", name: "Premium Quality" },
+  { _id: "wf-003", name: "Express Production" }
+]
 
 export default function BrandPODetails() {
   const params = useParams()
   const router = useRouter()
   const poId = params.poId as string
   
-  // Get the demo brand ID
-  const brands = useQuery(api.brands.listBrands)
-  const brandId = brands?.[0]?._id
-  
-  // Get purchase order details
-  const purchaseOrder = useQuery(api.purchaseOrders.getPurchaseOrder, { poId: poId as any })
-  
-  // Get items for this PO
-  const items = useQuery(api.items.listItemsByPO, { purchaseOrderId: poId as any })
-  
-  // Get factories for reference
-  const factories = useQuery(api.factories.listFactories)
-  
-  // Get workflows for reference
-  const workflows = useQuery(api.workflows.getActive)
+  // Use mock data instead of Convex queries
+  const purchaseOrder = mockPurchaseOrder
+  const items = mockItems
+  const factories = mockFactories
+  const workflows = mockWorkflows
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -92,7 +131,13 @@ export default function BrandPODetails() {
   }
 
   const getStatusBreakdown = () => {
-    if (!items) return {}
+    if (!items) return {
+      active: 0,
+      paused: 0,
+      completed: 0,
+      error: 0,
+      total: 0
+    }
     
     const breakdown = {
       active: 0,
@@ -118,7 +163,6 @@ export default function BrandPODetails() {
   if (!purchaseOrder) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <BrandHeader />
         <div className="container mx-auto px-4 py-6">
           <div className="text-center py-12">
             <div className="text-lg">Loading purchase order...</div>
@@ -135,7 +179,6 @@ export default function BrandPODetails() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <BrandHeader />
       <div className="container mx-auto px-4 py-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -207,33 +250,30 @@ export default function BrandPODetails() {
         {purchaseOrder.status === "accepted" && breakdown.total > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
-                Production Progress
-              </CardTitle>
+              <CardTitle>Production Progress</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Overall Completion</span>
-                  <span className="text-sm text-gray-600">{breakdown.completed}/{breakdown.total} items</span>
+                  <span className="text-sm font-medium">Overall Progress</span>
+                  <span className="text-sm text-gray-600">{progress}%</span>
                 </div>
-                <Progress value={progress} className="h-3" />
+                <Progress value={progress} className="w-full" />
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">{breakdown.active}</div>
+                    <div className="font-semibold text-blue-600">{breakdown.active}</div>
                     <div className="text-gray-600">Active</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-yellow-600">{breakdown.paused}</div>
+                    <div className="font-semibold text-yellow-600">{breakdown.paused}</div>
                     <div className="text-gray-600">Paused</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">{breakdown.completed}</div>
+                    <div className="font-semibold text-green-600">{breakdown.completed}</div>
                     <div className="text-gray-600">Completed</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-red-600">{breakdown.error}</div>
+                    <div className="font-semibold text-red-600">{breakdown.error}</div>
                     <div className="text-gray-600">Error</div>
                   </div>
                 </div>
@@ -246,63 +286,29 @@ export default function BrandPODetails() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Order Information
-              </CardTitle>
+              <CardTitle>Order Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">PO Number</p>
-                  <p className="font-semibold">{purchaseOrder.poNumber}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Status</p>
-                  <div className="mt-1">{getStatusBadge(purchaseOrder.status)}</div>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Factory</p>
-                  <p className="font-semibold">{factoryName}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Value</p>
-                  <p className="font-semibold">${purchaseOrder.totalValue.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Requested Delivery</p>
-                  <p className="font-semibold">
-                    {new Date(purchaseOrder.requestedDeliveryDate).toLocaleDateString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Submitted</p>
-                  <p className="font-semibold">
-                    {new Date(purchaseOrder.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Factory:</span>
+                <span className="font-medium">{factoryName}</span>
               </div>
-              
+              <div className="flex justify-between">
+                <span className="text-gray-600">Workflow:</span>
+                <span className="font-medium">{workflowName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Requested Delivery:</span>
+                <span className="font-medium">{new Date(purchaseOrder.requestedDeliveryDate).toLocaleDateString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Created:</span>
+                <span className="font-medium">{new Date(purchaseOrder.createdAt).toLocaleDateString()}</span>
+              </div>
               {purchaseOrder.acceptedAt && (
-                <div className="pt-4 border-t border-gray-200">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Accepted</p>
-                      <p className="font-semibold">
-                        {new Date(purchaseOrder.acceptedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Accepted By</p>
-                      <p className="font-semibold">{purchaseOrder.acceptedBy || "Unknown"}</p>
-                    </div>
-                    {purchaseOrder.workflowId && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Workflow</p>
-                        <p className="font-semibold">{workflowName}</p>
-                      </div>
-                    )}
-                  </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Accepted:</span>
+                  <span className="font-medium">{new Date(purchaseOrder.acceptedAt).toLocaleDateString()}</span>
                 </div>
               )}
             </CardContent>
@@ -310,87 +316,57 @@ export default function BrandPODetails() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="w-5 h-5" />
-                Item Breakdown
-              </CardTitle>
+              <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                                 {purchaseOrder.items.map((item, index) => (
-                   <div key={index} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                     <div>
-                       <p className="font-medium">{item.sku}</p>
-                       <p className="text-sm text-gray-600">{item.description}</p>
-                       <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
-                     </div>
-                     <div className="text-right">
-                       <p className="font-semibold">${(item.unitPrice || 0).toLocaleString()}</p>
-                       <p className="text-sm text-gray-600">Total: ${((item.unitPrice || 0) * (item.quantity || 0)).toLocaleString()}</p>
-                     </div>
-                   </div>
-                 ))}
-              </div>
+            <CardContent className="space-y-3">
+              <Button className="w-full" variant="outline">
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Message Factory
+              </Button>
+              <Button className="w-full" variant="outline">
+                <FileText className="w-4 h-4 mr-2" />
+                Download PO
+              </Button>
+              <Button className="w-full" variant="outline">
+                <TrendingUp className="w-4 h-4 mr-2" />
+                View Analytics
+              </Button>
             </CardContent>
           </Card>
         </div>
 
         {/* Items List */}
-        {items && items.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="w-5 h-5" />
-                Production Items ({items.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {items.map((item) => (
-                  <div key={item._id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <p className="font-medium">{item.itemId}</p>
-                        <p className="text-sm text-gray-600">
-                          SKU: {item.metadata?.sku || 'N/A'}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Started: {new Date(item.startedAt).toLocaleDateString()}
-                        </p>
-                      </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Order Items</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {items.map((item) => (
+                <div key={item._id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Package className="w-6 h-6 text-blue-600" />
                     </div>
-                    <div className="flex items-center gap-3">
-                      {getItemStatusBadge(item.status)}
-                      <Link href={`/floor/items/${item.itemId}`}>
-                        <Button variant="outline" size="sm">
-                          View Details
-                        </Button>
-                      </Link>
+                    <div>
+                      <h4 className="font-medium">{item.name}</h4>
+                      <p className="text-sm text-gray-600">
+                        {item.completed}/{item.quantity} completed
+                      </p>
                     </div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Actions */}
-        <div className="flex items-center justify-between">
-          <Button variant="outline" onClick={() => router.back()}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Orders
-          </Button>
-          <div className="flex items-center gap-2">
-            <Button variant="outline">
-              <MessageSquare className="w-4 h-4 mr-2" />
-              Message Factory
-            </Button>
-            <Button className="bg-black hover:bg-gray-800">
-              <FileText className="w-4 h-4 mr-2" />
-              Download Report
-            </Button>
-          </div>
-        </div>
+                  <div className="flex items-center gap-4">
+                    {getItemStatusBadge(item.status)}
+                    <div className="text-right">
+                      <div className="font-medium">{Math.round((item.completed / item.quantity) * 100)}%</div>
+                      <div className="text-sm text-gray-600">Progress</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
