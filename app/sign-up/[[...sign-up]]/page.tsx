@@ -14,8 +14,8 @@ export default function Page() {
   }
 
   const handleBrandAccess = () => {
-    // Redirect to brand side
-    router.push("/brand")
+    // Redirect to brand dashboard
+    router.push("/brand/dashboard")
   }
   
   return (
