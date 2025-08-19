@@ -35,189 +35,67 @@ import {
     Minus
 } from "lucide-react"
 
-import { useMutation } from "convex/react"
+import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useToast } from "@/hooks/use-toast"
 import { BrandWelcomeBanner } from "@/components/brand/brand-welcome-banner"
-
-// Enhanced mock data for the new dashboard
-const mockProductionOverview = {
-  pendingSamples: 8,
-  pendingPOs: 3,
-  acceptedPOs: 12,
-  totalOpenValue: 285000,
-  nextDelivery: "2024-12-15",
-  onTimePercentage: 87,
-  aheadOfSchedule: 4,
-  onTrack: 8,
-  behindSchedule: 2
-}
-
-const mockActiveOrders = [
-  {
-    id: "PO-2024-001",
-    factory: "Factory A - Textile Production",
-    factoryId: "factory-a",
-    location: "Bangladesh",
-    status: "in_production",
-    items: 50,
-    value: 12500,
-    dueDate: "2024-12-15",
-    progress: 65,
-    stage: "Cutting & Sewing",
-    priority: "high",
-    scheduleStatus: "on_track", // ahead, on_track, behind
-    nextMilestone: "Quality Check",
-    nextMilestoneDate: "2024-12-12",
-    itemsCompleted: 32,
-    itemsInStage: 18,
-    timeInStage: "3 days",
-    defects: 2,
-    reworks: 1
-  },
-  {
-    id: "PO-2024-002", 
-    factory: "Factory B - Garment Assembly",
-    factoryId: "factory-b",
-    location: "Vietnam",
-    status: "in_production",
-    items: 25,
-    value: 8200,
-    dueDate: "2024-12-10",
-    progress: 85,
-    stage: "Final Assembly",
-    priority: "medium",
-    scheduleStatus: "ahead",
-    nextMilestone: "Packaging",
-    nextMilestoneDate: "2024-12-08",
-    itemsCompleted: 21,
-    itemsInStage: 4,
-    timeInStage: "1 day",
-    defects: 0,
-    reworks: 0
-  },
-  {
-    id: "PO-2024-003",
-    factory: "Factory C - Quality Control", 
-    factoryId: "factory-c",
-    location: "India",
-    status: "pending_review",
-    items: 100,
-    value: 25000,
-    dueDate: "2024-12-20",
-    progress: 0,
-    stage: "Pending Review",
-    priority: "high",
-    scheduleStatus: "behind",
-    nextMilestone: "Production Start",
-    nextMilestoneDate: "2024-12-05",
-    itemsCompleted: 0,
-    itemsInStage: 0,
-    timeInStage: "5 days",
-    defects: 0,
-    reworks: 0
-  },
-  {
-    id: "PO-2024-004",
-    factory: "Factory A - Textile Production",
-    factoryId: "factory-a", 
-    location: "Bangladesh",
-    status: "in_production",
-    items: 30,
-    value: 7500,
-    dueDate: "2024-12-18",
-    progress: 45,
-    stage: "Fabric Preparation",
-    priority: "medium",
-    scheduleStatus: "on_track",
-    nextMilestone: "Cutting",
-    nextMilestoneDate: "2024-12-10",
-    itemsCompleted: 13,
-    itemsInStage: 17,
-    timeInStage: "2 days",
-    defects: 1,
-    reworks: 0
-  },
-  {
-    id: "PO-2024-005",
-    factory: "Factory B - Garment Assembly",
-    factoryId: "factory-b",
-    location: "Vietnam",
-    status: "in_production", 
-    items: 40,
-    value: 12000,
-    dueDate: "2024-12-22",
-    progress: 20,
-    stage: "Pattern Making",
-    priority: "low",
-    scheduleStatus: "ahead",
-    nextMilestone: "Cutting",
-    nextMilestoneDate: "2024-12-09",
-    itemsCompleted: 8,
-    itemsInStage: 32,
-    timeInStage: "1 day",
-    defects: 0,
-    reworks: 0
-  }
-]
-
-const mockFactoryLocations = [
-  { id: "factory-a", name: "Factory A", location: "Dhaka, Bangladesh", lat: 23.8103, lng: 90.4125, activeOrders: 2, status: "active" },
-  { id: "factory-b", name: "Factory B", location: "Ho Chi Minh City, Vietnam", lat: 10.8231, lng: 106.6297, activeOrders: 2, status: "active" },
-  { id: "factory-c", name: "Factory C", location: "Mumbai, India", lat: 19.0760, lng: 72.8777, activeOrders: 1, status: "active" }
-]
-
-const mockRecentActivity = [
-  {
-    id: 1,
-    type: "order_completed",
-    message: "Order #PO-2024-002 completed at Factory B",
-    timestamp: "2 hours ago",
-    factory: "Factory B",
-    color: "green",
-    impact: "positive"
-  },
-  {
-    id: 2,
-    type: "message_received", 
-    message: "New message from Factory A regarding PO-2024-001",
-    timestamp: "4 hours ago",
-    factory: "Factory A",
-    color: "blue",
-    impact: "neutral"
-  },
-  {
-    id: 3,
-    type: "stage_progress",
-    message: "Item SKU-123 moved to Stage 3 at Factory C",
-    timestamp: "6 hours ago", 
-    factory: "Factory C",
-    color: "purple",
-    impact: "positive"
-  },
-  {
-    id: 4,
-    type: "quality_alert",
-    message: "Quality alert: 3 defects detected in PO-2024-004",
-    timestamp: "8 hours ago",
-    factory: "Factory A", 
-    color: "red",
-    impact: "negative"
-  },
-  {
-    id: 5,
-    type: "delivery_update",
-    message: "Shipment ETA updated for PO-2024-003",
-    timestamp: "10 hours ago",
-    factory: "Factory C",
-    color: "orange",
-    impact: "neutral"
-  }
-]
+import { formatDistanceToNow } from "date-fns"
+import { useState, useEffect } from "react"
+import { Id } from "@/convex/_generated/dataModel"
 
 export default function BrandDashboard() {
   const { toast } = useToast()
   const seedDemoData = useMutation(api.seed.seedDemoData)
+  const createBrand = useMutation(api.brands.createBrand)
+  const [brandId, setBrandId] = useState<Id<"brands"> | null>(null)
+
+  // Get or create a demo brand
+  const brands = useQuery(api.brands.listBrands)
+  
+  useEffect(() => {
+    const setupBrand = async () => {
+      if (brands && brands.length > 0) {
+        // Use the first available brand
+        setBrandId(brands[0]._id as Id<"brands">)
+      } else {
+        // Create a demo brand if none exist
+        try {
+          const newBrandId = await createBrand({
+            name: "Demo Brand",
+            email: "demo@brand.com",
+            contactPerson: "Demo Contact",
+            phone: "+1-555-0123",
+            address: "123 Demo Street, Demo City, DC 12345",
+            logo: "/placeholder-logo.png",
+            metadata: { isDemo: true }
+          })
+          setBrandId(newBrandId)
+        } catch (error) {
+          console.error("Failed to create demo brand:", error)
+        }
+      }
+    }
+
+    setupBrand()
+  }, [brands, createBrand])
+
+  // Fetch real data from Convex - only if we have a valid brand ID
+  const dashboardData = useQuery(
+    api.brands.getBrandDashboardData, 
+    brandId ? { brandId } : "skip"
+  )
+  const activeOrders = useQuery(
+    api.brands.getBrandActiveOrders, 
+    brandId ? { brandId } : "skip"
+  )
+  const recentActivity = useQuery(
+    api.brands.getBrandRecentActivity, 
+    brandId ? { brandId } : "skip"
+  )
+  const factoryLocations = useQuery(
+    api.brands.getBrandFactoryLocations, 
+    brandId ? { brandId } : "skip"
+  )
 
   const handleSeedData = async () => {
     try {
@@ -273,6 +151,65 @@ export default function BrandDashboard() {
     }
   }
 
+  // Show loading state while brand is being set up
+  if (!brandId) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Setting up brand dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show demo state when no real data is available
+  if (!dashboardData || !activeOrders || !recentActivity || !factoryLocations) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-6 space-y-6">
+          {/* Welcome Banner */}
+          <BrandWelcomeBanner />
+          
+          {/* Page Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Production Overview</h1>
+              <p className="text-gray-600">Real-time visibility into your global manufacturing network</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button onClick={handleSeedData} variant="outline" size="sm">
+                Seed Demo Data
+              </Button>
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="w-4 h-4 mr-2" />
+                New Order
+              </Button>
+            </div>
+          </div>
+
+          {/* Demo State */}
+          <Card>
+            <CardContent className="p-12">
+              <div className="text-center">
+                <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Production Data Available</h3>
+                <p className="text-gray-600 mb-6">
+                  Your brand dashboard is ready! Click "Seed Demo Data" to create sample purchase orders and factory data for testing.
+                </p>
+                <Button onClick={handleSeedData} className="bg-blue-600 hover:bg-blue-700">
+                  Create Demo Data
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
+  const { overview } = dashboardData
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-6 space-y-6">
@@ -302,12 +239,12 @@ export default function BrandDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Pending Samples</p>
-                  <p className="text-3xl font-bold text-gray-900">{mockProductionOverview.pendingSamples}</p>
-                  <p className="text-xs text-gray-500 mt-1">Awaiting review</p>
+                  <p className="text-sm font-medium text-gray-600">Pending POs</p>
+                  <p className="text-3xl font-bold text-gray-900">{overview.pendingPOs}</p>
+                  <p className="text-xs text-gray-500 mt-1">Awaiting acceptance</p>
                 </div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100">
-                  <Package className="h-6 w-6 text-blue-600" />
+                  <Clock className="h-6 w-6 text-blue-600" />
                 </div>
               </div>
             </CardContent>
@@ -317,12 +254,12 @@ export default function BrandDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Pending POs</p>
-                  <p className="text-3xl font-bold text-gray-900">{mockProductionOverview.pendingPOs}</p>
-                  <p className="text-xs text-gray-500 mt-1">Awaiting acceptance</p>
+                  <p className="text-sm font-medium text-gray-600">Accepted Orders</p>
+                  <p className="text-3xl font-bold text-gray-900">{overview.acceptedPOs}</p>
+                  <p className="text-xs text-gray-500 mt-1">In production</p>
                 </div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-orange-100">
-                  <Clock className="h-6 w-6 text-orange-600" />
+                  <CheckCircle className="h-6 w-6 text-orange-600" />
                 </div>
               </div>
             </CardContent>
@@ -332,12 +269,12 @@ export default function BrandDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Accepted Orders</p>
-                  <p className="text-3xl font-bold text-gray-900">{mockProductionOverview.acceptedPOs}</p>
-                  <p className="text-xs text-gray-500 mt-1">In production</p>
+                  <p className="text-sm font-medium text-gray-600">Open Value</p>
+                  <p className="text-3xl font-bold text-gray-900">${(overview.totalOpenValue / 1000).toFixed(0)}K</p>
+                  <p className="text-xs text-gray-500 mt-1">At risk</p>
                 </div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-100">
-                  <CheckCircle className="h-6 w-6 text-green-600" />
+                  <DollarSign className="h-6 w-6 text-green-600" />
                 </div>
               </div>
             </CardContent>
@@ -347,12 +284,12 @@ export default function BrandDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Open Value</p>
-                  <p className="text-3xl font-bold text-gray-900">${(mockProductionOverview.totalOpenValue / 1000).toFixed(0)}K</p>
-                  <p className="text-xs text-gray-500 mt-1">At risk</p>
+                  <p className="text-sm font-medium text-gray-600">On-Time Rate</p>
+                  <p className="text-3xl font-bold text-gray-900">{overview.onTimePercentage}%</p>
+                  <p className="text-xs text-gray-500 mt-1">Overall performance</p>
                 </div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100">
-                  <DollarSign className="h-6 w-6 text-purple-600" />
+                  <Target className="h-6 w-6 text-purple-600" />
                 </div>
               </div>
             </CardContent>
@@ -370,22 +307,22 @@ export default function BrandDashboard() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-green-600">{mockProductionOverview.aheadOfSchedule}</div>
+                <div className="text-3xl font-bold text-green-600">{overview.aheadOfSchedule}</div>
                 <div className="text-sm text-gray-600">Ahead of Schedule</div>
-                <div className="text-xs text-green-500 mt-1">+{mockProductionOverview.aheadOfSchedule} orders</div>
+                <div className="text-xs text-green-500 mt-1">+{overview.aheadOfSchedule} orders</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600">{mockProductionOverview.onTrack}</div>
+                <div className="text-3xl font-bold text-blue-600">{overview.onTrack}</div>
                 <div className="text-sm text-gray-600">On Track</div>
                 <div className="text-xs text-blue-500 mt-1">On schedule</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-red-600">{mockProductionOverview.behindSchedule}</div>
+                <div className="text-3xl font-bold text-red-600">{overview.behindSchedule}</div>
                 <div className="text-sm text-gray-600">Behind Schedule</div>
                 <div className="text-xs text-red-500 mt-1">Requires attention</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600">{mockProductionOverview.onTimePercentage}%</div>
+                <div className="text-3xl font-bold text-purple-600">{overview.onTimePercentage}%</div>
                 <div className="text-sm text-gray-600">On-Time Rate</div>
                 <div className="text-xs text-purple-500 mt-1">Overall performance</div>
               </div>
@@ -409,7 +346,7 @@ export default function BrandDashboard() {
                   <div className="text-center">
                     <Globe className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600 font-medium">Interactive Production Map</p>
-                    <p className="text-sm text-gray-500">Showing {mockFactoryLocations.length} active factories</p>
+                    <p className="text-sm text-gray-500">Showing {factoryLocations.length} active factories</p>
                   </div>
                 </div>
               </div>
@@ -417,7 +354,7 @@ export default function BrandDashboard() {
               {/* Factory List */}
               <div className="space-y-3">
                 <h3 className="font-semibold text-gray-900">Active Factories</h3>
-                {mockFactoryLocations.map((factory) => (
+                {factoryLocations.map((factory) => (
                   <div key={factory.id} className="flex items-center justify-between p-3 bg-white rounded-lg border">
                     <div className="flex items-center gap-3">
                       <div className="w-3 h-3 bg-green-500 rounded-full"></div>
@@ -461,123 +398,131 @@ export default function BrandDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {mockActiveOrders.map((order) => (
-                <div key={order.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
-                  {/* Order Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-bold text-gray-900">{order.id}</h3>
-                        <Badge className={getScheduleStatusColor(order.scheduleStatus)}>
-                          {getScheduleStatusIcon(order.scheduleStatus)}
-                          {order.scheduleStatus.replace('_', ' ')}
-                        </Badge>
-                        <Badge variant="outline" className={
-                          order.priority === 'high' ? 'border-red-200 text-red-600' :
-                          order.priority === 'medium' ? 'border-orange-200 text-orange-600' :
-                          'border-gray-200 text-gray-600'
-                        }>
-                          {order.priority} priority
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <div className="flex items-center gap-1">
-                          <Factory className="h-4 w-4" />
-                          <span>{order.factory}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-4 w-4" />
-                          <span>{order.location}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          <span>Due: {new Date(order.dueDate).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-gray-900">${order.value.toLocaleString()}</div>
-                      <div className="text-sm text-gray-600">{order.items} items</div>
-                    </div>
-                  </div>
-
-                  {/* Progress and Metrics */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                    {/* Production Progress */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-700">Production Progress</span>
-                        <span className="text-sm text-gray-600">{order.progress}%</span>
-                      </div>
-                      <Progress value={order.progress} className="h-2" />
-                      <div className="text-xs text-gray-500">
-                        {order.itemsCompleted}/{order.items} items completed
-                      </div>
-                    </div>
-
-                    {/* Current Stage */}
-                    <div className="space-y-2">
-                      <span className="text-sm font-medium text-gray-700">Current Stage</span>
-                      <div className="text-lg font-semibold text-gray-900">{order.stage}</div>
-                      <div className="text-xs text-gray-500">
-                        {order.itemsInStage} items in stage • {order.timeInStage}
-                      </div>
-                    </div>
-
-                    {/* Next Milestone */}
-                    <div className="space-y-2">
-                      <span className="text-sm font-medium text-gray-700">Next Milestone</span>
-                      <div className="text-lg font-semibold text-gray-900">{order.nextMilestone}</div>
-                      <div className="text-xs text-gray-500">
-                        Due {new Date(order.nextMilestoneDate).toLocaleDateString()}
-                      </div>
-                    </div>
-
-                    {/* Quality Metrics */}
-                    <div className="space-y-2">
-                      <span className="text-sm font-medium text-gray-700">Quality</span>
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-600">Defects</span>
-                          <span className={`text-sm font-medium ${order.defects > 2 ? 'text-red-600' : 'text-green-600'}`}>
-                            {order.defects}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-600">Reworks</span>
-                          <span className={`text-sm font-medium ${order.reworks > 1 ? 'text-orange-600' : 'text-green-600'}`}>
-                            {order.reworks}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center justify-between pt-4 border-t">
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-4 w-4 mr-2" />
-                        View Details
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Message Factory
-                      </Button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm">
-                        <FileText className="h-4 w-4 mr-2" />
-                        Documents
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Truck className="h-4 w-4 mr-2" />
-                        Track Shipment
-                      </Button>
-                    </div>
-                  </div>
+              {activeOrders.length === 0 ? (
+                <div className="text-center py-8">
+                  <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">No active orders found</p>
+                  <p className="text-sm text-gray-500">Create your first purchase order to get started</p>
                 </div>
-              ))}
+              ) : (
+                activeOrders.map((order) => (
+                  <div key={order.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
+                    {/* Order Header */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-xl font-bold text-gray-900">{order.id}</h3>
+                          <Badge className={getScheduleStatusColor(order.scheduleStatus)}>
+                            {getScheduleStatusIcon(order.scheduleStatus)}
+                            {order.scheduleStatus.replace('_', ' ')}
+                          </Badge>
+                          <Badge variant="outline" className={
+                            order.priority === 'high' ? 'border-red-200 text-red-600' :
+                            order.priority === 'medium' ? 'border-orange-200 text-orange-600' :
+                            'border-gray-200 text-gray-600'
+                          }>
+                            {order.priority} priority
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                          <div className="flex items-center gap-1">
+                            <Factory className="h-4 w-4" />
+                            <span>{order.factory}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-4 w-4" />
+                            <span>{order.location}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            <span>Due: {new Date(order.dueDate).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-gray-900">${order.value.toLocaleString()}</div>
+                        <div className="text-sm text-gray-600">{order.items} items</div>
+                      </div>
+                    </div>
+
+                    {/* Progress and Metrics */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                      {/* Production Progress */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-700">Production Progress</span>
+                          <span className="text-sm text-gray-600">{order.progress}%</span>
+                        </div>
+                        <Progress value={order.progress} className="h-2" />
+                        <div className="text-xs text-gray-500">
+                          {order.itemsCompleted}/{order.items} items completed
+                        </div>
+                      </div>
+
+                      {/* Current Stage */}
+                      <div className="space-y-2">
+                        <span className="text-sm font-medium text-gray-700">Current Stage</span>
+                        <div className="text-lg font-semibold text-gray-900">{order.stage}</div>
+                        <div className="text-xs text-gray-500">
+                          {order.itemsInStage} items in stage
+                        </div>
+                      </div>
+
+                      {/* Next Milestone */}
+                      <div className="space-y-2">
+                        <span className="text-sm font-medium text-gray-700">Next Milestone</span>
+                        <div className="text-lg font-semibold text-gray-900">Production</div>
+                        <div className="text-xs text-gray-500">
+                          Due {new Date(order.dueDate).toLocaleDateString()}
+                        </div>
+                      </div>
+
+                      {/* Quality Metrics */}
+                      <div className="space-y-2">
+                        <span className="text-sm font-medium text-gray-700">Quality</span>
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-600">Defects</span>
+                            <span className={`text-sm font-medium ${order.defects > 2 ? 'text-red-600' : 'text-green-600'}`}>
+                              {order.defects}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-600">Reworks</span>
+                            <span className={`text-sm font-medium ${order.reworks > 1 ? 'text-orange-600' : 'text-green-600'}`}>
+                              {order.reworks}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center justify-between pt-4 border-t">
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm">
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Message Factory
+                        </Button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm">
+                          <FileText className="h-4 w-4 mr-2" />
+                          Documents
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Truck className="h-4 w-4 mr-2" />
+                          Track Shipment
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -593,25 +538,33 @@ export default function BrandDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {mockRecentActivity.map((activity) => (
-                  <div key={activity.id} className="flex items-start gap-3">
-                    <div className={`w-2 h-2 bg-${activity.color}-500 rounded-full mt-2`}></div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        {getActivityIcon(activity.type)}
-                        <p className="text-sm font-medium text-gray-900">{activity.message}</p>
-                        <span className={`text-xs ${getImpactColor(activity.impact)}`}>
-                          {activity.impact}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">{activity.timestamp}</span>
-                        <span className="text-xs text-gray-400">•</span>
-                        <span className="text-xs text-gray-500">{activity.factory}</span>
+                {recentActivity.length === 0 ? (
+                  <div className="text-center py-4">
+                    <p className="text-gray-500">No recent activity</p>
+                  </div>
+                ) : (
+                  recentActivity.map((activity) => (
+                    <div key={activity.id} className="flex items-start gap-3">
+                      <div className={`w-2 h-2 bg-${activity.color}-500 rounded-full mt-2`}></div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          {getActivityIcon(activity.type)}
+                          <p className="text-sm font-medium text-gray-900">{activity.message}</p>
+                          <span className={`text-xs ${getImpactColor(activity.impact)}`}>
+                            {activity.impact}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">
+                            {formatDistanceToNow(activity.timestamp, { addSuffix: true })}
+                          </span>
+                          <span className="text-xs text-gray-400">•</span>
+                          <span className="text-xs text-gray-500">{activity.factory}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>

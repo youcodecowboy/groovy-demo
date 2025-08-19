@@ -33,10 +33,12 @@ import {
   Truck,
   CreditCard
 } from 'lucide-react'
-import { brandAdapter } from '@/lib/brand-adapter'
-import { BrandOrder } from '@/lib/brand-mock-data'
+import { useQuery, useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { Id } from "@/convex/_generated/dataModel"
 import { format } from 'date-fns'
 import Link from 'next/link'
+import { useToast } from "@/hooks/use-toast"
 
 const statusColors = {
   draft: 'bg-gray-100 text-gray-800',
@@ -75,297 +77,135 @@ const priorityIcons = {
 }
 
 export function BrandOrdersList() {
-  const [orders, setOrders] = useState<BrandOrder[]>([])
-  const [filteredOrders, setFilteredOrders] = useState<BrandOrder[]>([])
-  const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
+  const [brandId, setBrandId] = useState<Id<"brands"> | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [factoryFilter, setFactoryFilter] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards')
 
+  // Get or create a demo brand
+  const brands = useQuery(api.brands.listBrands)
+  const createBrand = useMutation(api.brands.createBrand)
+  
   useEffect(() => {
-    const loadOrders = async () => {
-      try {
-        setLoading(true)
-        const ordersData = await brandAdapter.getOrders()
-        setOrders(ordersData)
-        setFilteredOrders(ordersData)
-      } catch (error) {
-        console.error('Failed to load orders:', error)
-      } finally {
-        setLoading(false)
+    const setupBrand = async () => {
+      if (brands && brands.length > 0) {
+        // Use the first available brand
+        setBrandId(brands[0]._id as Id<"brands">)
+      } else {
+        // Create a demo brand if none exist
+        try {
+          const newBrandId = await createBrand({
+            name: "Demo Brand",
+            email: "demo@brand.com",
+            contactPerson: "Demo Contact",
+            phone: "+1-555-0123",
+            address: "123 Demo Street, Demo City, DC 12345",
+            logo: "/placeholder-logo.png",
+            metadata: { isDemo: true }
+          })
+          setBrandId(newBrandId)
+        } catch (error) {
+          console.error("Failed to create demo brand:", error)
+        }
       }
     }
 
-    loadOrders()
-  }, [])
+    setupBrand()
+  }, [brands, createBrand])
 
-  useEffect(() => {
-    let filtered = [...orders]
+  // Fetch orders data from Convex
+  const orders = useQuery(
+    api.brands.getBrandPurchaseOrders,
+    brandId ? { 
+      brandId,
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+      limit: 50
+    } : "skip"
+  )
 
-    // Search filter
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase()
-      filtered = filtered.filter(order => 
-        order.poNumber.toLowerCase().includes(search) ||
-        order.factoryName.toLowerCase().includes(search)
-      )
-    }
+  // Get available factories for filtering
+  const factories = useQuery(
+    api.brands.getBrandFactories,
+    brandId ? { brandId } : "skip"
+  )
 
-    // Status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(order => order.status === statusFilter)
-    }
-
-    // Factory filter
-    if (factoryFilter !== 'all') {
-      filtered = filtered.filter(order => order.factoryId === factoryFilter)
-    }
-
-    setFilteredOrders(filtered)
-  }, [orders, searchTerm, statusFilter, factoryFilter])
-
-  const getDeliveryStatus = (order: BrandOrder) => {
-    if (order.status === 'delivered' && order.actualDelivery) {
-      const onTime = order.actualDelivery <= order.promisedDelivery
-      return onTime ? 'on-time' : 'late'
-    }
-    if (['shipped', 'delivered'].includes(order.status)) {
-      return 'on-time'
-    }
-    const now = new Date()
-    const daysUntilDelivery = Math.ceil((order.promisedDelivery.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+  // Filter orders based on search term and factory filter
+  const filteredOrders = orders?.filter(order => {
+    const matchesSearch = searchTerm === '' || 
+      order.poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.factory.toLowerCase().includes(searchTerm.toLowerCase())
     
-    if (daysUntilDelivery < 0) return 'overdue'
-    if (daysUntilDelivery <= 3) return 'at-risk'
-    return 'on-track'
-  }
+    const matchesFactory = factoryFilter === 'all' || 
+      order.factoryId === factoryFilter
 
-  const getDeliveryStatusColor = (status: string) => {
+    return matchesSearch && matchesFactory
+  }) || []
+
+  const getScheduleStatusColor = (status: string) => {
     switch (status) {
-      case 'on-time': return 'text-green-600'
-      case 'late': return 'text-red-600'
-      case 'overdue': return 'text-red-600 font-semibold'
-      case 'at-risk': return 'text-orange-600'
-      default: return 'text-gray-600'
+      case 'ahead': return 'text-green-600 bg-green-50'
+      case 'on_track': return 'text-blue-600 bg-blue-50'
+      case 'behind': return 'text-red-600 bg-red-50'
+      default: return 'text-gray-600 bg-gray-50'
     }
   }
 
-  const getDeliveryStatusIcon = (status: string) => {
+  const getScheduleStatusIcon = (status: string) => {
     switch (status) {
-      case 'on-time': return CheckCircle
-      case 'late': return AlertTriangle
-      case 'overdue': return AlertTriangle
-      case 'at-risk': return Clock
-      default: return Clock
+      case 'ahead': return <TrendingUp className="w-4 h-4" />
+      case 'on_track': return <CheckCircle className="w-4 h-4" />
+      case 'behind': return <AlertTriangle className="w-4 h-4" />
+      default: return <Clock className="w-4 h-4" />
     }
   }
 
-  const uniqueFactories = Array.from(new Set(orders.map(order => order.factoryName)))
-
-  const renderOrderCard = (order: BrandOrder) => {
-    const deliveryStatus = getDeliveryStatus(order)
-    const DeliveryIcon = getDeliveryStatusIcon(deliveryStatus)
-    const PriorityIcon = priorityIcons[order.priority]
-    const progressPercentage = Math.round((order.itemsCompleted / order.totalItems) * 100)
-    const daysUntilDelivery = Math.ceil((order.promisedDelivery.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-
+  // Show loading state while brand is being set up
+  if (!brandId) {
     return (
-      <Card key={order.id} className="hover:shadow-lg transition-shadow border-l-4 border-l-blue-500">
-        <CardContent className="p-6">
-          {/* Header */}
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h3 className="text-xl font-bold text-gray-900">
-                  <Link 
-                    href={`/brand/orders/purchase-orders/${order.id}`}
-                    className="hover:text-blue-600 transition-colors"
-                  >
-                    {order.poNumber}
-                  </Link>
-                </h3>
-                <Badge className={statusColors[order.status]}>
-                  {statusLabels[order.status]}
-                </Badge>
-                <Badge variant="outline" className={priorityColors[order.priority]}>
-                  <PriorityIcon className="h-3 w-3 mr-1" />
-                  {order.priority}
-                </Badge>
-              </div>
-              <div className="flex items-center gap-4 text-sm text-gray-600">
-                <div className="flex items-center gap-1">
-                  <Factory className="h-4 w-4" />
-                  <span>{order.factoryName}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-4 w-4" />
-                  <span>Created {format(order.createdAt, 'MMM d, yyyy')}</span>
-                </div>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-gray-900">
-                ${order.value.toLocaleString()}
-              </div>
-              <div className="text-sm text-gray-600">{order.currency}</div>
-            </div>
-          </div>
-
-          {/* Progress and Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            {/* Progress */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">Production Progress</span>
-                <span className="text-sm text-gray-600">{progressPercentage}%</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 bg-gray-200 rounded-full h-3">
-                  <div 
-                    className="bg-blue-600 h-3 rounded-full transition-all duration-300"
-                    style={{ width: `${progressPercentage}%` }}
-                  />
-                </div>
-              </div>
-              <div className="text-xs text-gray-500">
-                {order.itemsCompleted}/{order.totalItems} items completed
-              </div>
-            </div>
-
-            {/* Delivery Status */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <DeliveryIcon className={`h-4 w-4 ${getDeliveryStatusColor(deliveryStatus)}`} />
-                <span className="text-sm font-medium text-gray-700">Delivery Status</span>
-              </div>
-              <div className={getDeliveryStatusColor(deliveryStatus)}>
-                <div className="text-lg font-semibold">
-                  {format(order.promisedDelivery, 'MMM d, yyyy')}
-                </div>
-                {deliveryStatus === 'overdue' && (
-                  <div className="text-sm">Overdue by {Math.abs(daysUntilDelivery)} days</div>
-                )}
-                {deliveryStatus === 'at-risk' && (
-                  <div className="text-sm">Due in {daysUntilDelivery} days</div>
-                )}
-                {deliveryStatus === 'on-track' && (
-                  <div className="text-sm">Due in {daysUntilDelivery} days</div>
-                )}
-                {order.actualDelivery && (
-                  <div className="text-xs text-gray-500">
-                    Delivered {format(order.actualDelivery, 'MMM d')}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Quality Metrics */}
-            <div className="space-y-2">
-              <span className="text-sm font-medium text-gray-700">Quality Metrics</span>
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-600">Defect Rate</span>
-                  <span className={`text-sm font-medium ${order.defectRate > 3 ? 'text-red-600' : order.defectRate > 1.5 ? 'text-orange-600' : 'text-green-600'}`}>
-                    {order.defectRate.toFixed(1)}%
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-600">On-time %</span>
-                  <span className="text-sm font-medium text-green-600">
-                    {order.onTimePercentage}%
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Order Details */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 text-sm">
-            <div className="flex items-center gap-2">
-              <Package className="h-4 w-4 text-gray-400" />
-              <div>
-                <div className="font-medium">{order.totalItems} items</div>
-                <div className="text-gray-600">Total quantity</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-gray-400" />
-              <div>
-                <div className="font-medium">{order.factoryName}</div>
-                <div className="text-gray-600">Manufacturing partner</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Truck className="h-4 w-4 text-gray-400" />
-              <div>
-                <div className="font-medium">{order.shippingMethod || 'Standard'}</div>
-                <div className="text-gray-600">Shipping method</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4 text-gray-400" />
-              <div>
-                <div className="font-medium">{order.paymentTerms || 'Net 30'}</div>
-                <div className="text-gray-600">Payment terms</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center justify-between pt-4 border-t">
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/brand/orders/purchase-orders/${order.id}`}>
-                  <Eye className="h-4 w-4 mr-2" />
-                  View Details
-                </Link>
-              </Button>
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/brand/messaging?order=${order.id}`}>
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Message
-                </Link>
-              </Button>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
-                <FileText className="h-4 w-4 mr-2" />
-                Documents
-              </Button>
-              <Button variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Setting up orders page...</p>
+        </div>
+      </div>
     )
   }
 
-  if (loading) {
+  // Show empty state when no orders are available
+  if (!orders || orders.length === 0) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Orders</h1>
-        </div>
-        <div className="space-y-4">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <div className="h-6 bg-gray-200 rounded w-1/4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="h-8 bg-gray-200 rounded"></div>
-                    <div className="h-8 bg-gray-200 rounded"></div>
-                    <div className="h-8 bg-gray-200 rounded"></div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-6 space-y-6">
+          {/* Page Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Purchase Orders</h1>
+              <p className="text-gray-600">Manage your production orders and track progress</p>
+            </div>
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="w-4 h-4 mr-2" />
+              New Order
+            </Button>
+          </div>
+
+          {/* Empty State */}
+          <Card>
+            <CardContent className="p-12">
+              <div className="text-center">
+                <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Purchase Orders Found</h3>
+                <p className="text-gray-600 mb-6">
+                  You haven't created any purchase orders yet. Create your first order to get started.
+                </p>
+                <Button className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create First Order
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     )
@@ -373,20 +213,81 @@ export function BrandOrdersList() {
 
   return (
     <div className="space-y-6">
+      {/* Page Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Orders</h1>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-          <Button asChild>
-            <Link href="/brand/orders/new">
-              <Plus className="h-4 w-4 mr-2" />
-              Create PO
-            </Link>
-          </Button>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Purchase Orders</h1>
+          <p className="text-gray-600">Manage your production orders and track progress</p>
         </div>
+        <Button className="bg-blue-600 hover:bg-blue-700">
+          <Plus className="w-4 h-4 mr-2" />
+          New Order
+        </Button>
+      </div>
+
+      {/* Summary Stats - Top */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Orders</p>
+                <p className="text-3xl font-bold text-gray-900">{filteredOrders.length}</p>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100">
+                <Package className="h-6 w-6 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Value</p>
+                <p className="text-3xl font-bold text-gray-900">
+                  ${filteredOrders.reduce((sum, order) => sum + order.value, 0).toLocaleString()}
+                </p>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-100">
+                <DollarSign className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">In Production</p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {filteredOrders.filter(order => order.status === 'in_production').length}
+                </p>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100">
+                <Factory className="h-6 w-6 text-purple-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Pending</p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {filteredOrders.filter(order => order.status === 'pending').length}
+                </p>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-yellow-100">
+                <Clock className="h-6 w-6 text-yellow-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
@@ -411,9 +312,11 @@ export function BrandOrdersList() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                {Object.entries(statusLabels).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>{label}</SelectItem>
-                ))}
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="accepted">Accepted</SelectItem>
+                <SelectItem value="in_production">In Production</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
 
@@ -423,8 +326,10 @@ export function BrandOrdersList() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Factories</SelectItem>
-                {uniqueFactories.map((factory) => (
-                  <SelectItem key={factory} value={factory}>{factory}</SelectItem>
+                {factories?.map((factory) => (
+                  <SelectItem key={factory.id} value={factory.id}>
+                    {factory.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -475,7 +380,164 @@ export function BrandOrdersList() {
 
         {viewMode === 'cards' ? (
           <div className="space-y-4">
-            {filteredOrders.map(renderOrderCard)}
+            {filteredOrders.map((order) => (
+              <Card key={order.id} className="hover:shadow-lg transition-shadow border-l-4 border-l-blue-500">
+                <CardContent className="p-6">
+                  {/* Header */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-xl font-bold text-gray-900">
+                          <Link 
+                            href={`/brand/orders/purchase-orders/${order.id}`}
+                            className="hover:text-blue-600 transition-colors"
+                          >
+                            {order.poNumber}
+                          </Link>
+                        </h3>
+                        <Badge className={statusColors[order.status as keyof typeof statusColors]}>
+                          {statusLabels[order.status as keyof typeof statusLabels]}
+                        </Badge>
+                        <Badge variant="outline" className={priorityColors[order.priority as keyof typeof priorityColors]}>
+                          {order.priority}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <div className="flex items-center gap-1">
+                          <Factory className="h-4 w-4" />
+                          <span>{order.factory}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          <span>Due {format(order.dueDate, 'MMM d, yyyy')}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-gray-900">
+                        ${order.value.toLocaleString()}
+                      </div>
+                      <div className="text-sm text-gray-600">{order.items} items</div>
+                    </div>
+                  </div>
+
+                  {/* Progress and Metrics */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    {/* Progress */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700">Production Progress</span>
+                        <span className="text-sm text-gray-600">{order.progress}%</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-gray-200 rounded-full h-3">
+                          <div 
+                            className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+                            style={{ width: `${order.progress}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {order.itemsCompleted}/{order.items} items completed
+                      </div>
+                    </div>
+
+                    {/* Schedule Status */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        {getScheduleStatusIcon(order.scheduleStatus)}
+                        <span className="text-sm font-medium text-gray-700">Schedule Status</span>
+                      </div>
+                      <div className={getScheduleStatusColor(order.scheduleStatus)}>
+                        <div className="text-lg font-semibold">
+                          {order.scheduleStatus.replace('_', ' ')}
+                        </div>
+                        <div className="text-sm">Due {format(order.dueDate, 'MMM d, yyyy')}</div>
+                      </div>
+                    </div>
+
+                    {/* Quality Metrics */}
+                    <div className="space-y-2">
+                      <span className="text-sm font-medium text-gray-700">Quality Metrics</span>
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-600">Defects</span>
+                          <span className={`text-sm font-medium ${order.defects > 2 ? 'text-red-600' : 'text-green-600'}`}>
+                            {order.defects}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-600">Reworks</span>
+                          <span className={`text-sm font-medium ${order.reworks > 1 ? 'text-orange-600' : 'text-green-600'}`}>
+                            {order.reworks}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Order Details */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Package className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <div className="font-medium">{order.items} items</div>
+                        <div className="text-gray-600">Total quantity</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <div className="font-medium">{order.factory}</div>
+                        <div className="text-gray-600">Manufacturing partner</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Truck className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <div className="font-medium">Standard</div>
+                        <div className="text-gray-600">Shipping method</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <div className="font-medium">Net 30</div>
+                        <div className="text-gray-600">Payment terms</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-between pt-4 border-t">
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/brand/orders/purchase-orders/${order.id}`}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </Link>
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/brand/messaging?order=${order.id}`}>
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Message
+                        </Link>
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm">
+                        <FileText className="h-4 w-4 mr-2" />
+                        Documents
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Download className="h-4 w-4 mr-2" />
+                        Export
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         ) : (
           <Card>
@@ -494,64 +556,59 @@ export function BrandOrdersList() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredOrders.map((order) => {
-                      const deliveryStatus = getDeliveryStatus(order)
-                      const progressPercentage = Math.round((order.itemsCompleted / order.totalItems) * 100)
-                      
-                      return (
-                        <tr key={order.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <Link 
-                              href={`/brand/orders/purchase-orders/${order.id}`}
-                              className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
-                            >
-                              {order.poNumber}
-                            </Link>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.factoryName}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <Badge className={statusColors[order.status]}>
-                              {statusLabels[order.status]}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              <div className="flex-1 bg-gray-200 rounded-full h-2 w-20">
-                                <div 
-                                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                  style={{ width: `${progressPercentage}%` }}
-                                />
-                              </div>
-                              <span className="text-sm text-gray-600">
-                                {progressPercentage}%
-                              </span>
+                    {filteredOrders.map((order) => (
+                      <tr key={order.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Link 
+                            href={`/brand/orders/purchase-orders/${order.id}`}
+                            className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                          >
+                            {order.poNumber}
+                          </Link>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.factory}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge className={statusColors[order.status as keyof typeof statusColors]}>
+                            {statusLabels[order.status as keyof typeof statusLabels]}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 bg-gray-200 rounded-full h-2 w-20">
+                              <div 
+                                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${order.progress}%` }}
+                              />
                             </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className={getDeliveryStatusColor(deliveryStatus)}>
-                              {format(order.promisedDelivery, 'MMM d')}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            ${order.value.toLocaleString()}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button variant="ghost" size="sm" asChild>
-                                <Link href={`/brand/messaging?order=${order.id}`}>
-                                  <MessageSquare className="h-4 w-4" />
-                                </Link>
-                              </Button>
-                              <Button variant="ghost" size="sm" asChild>
-                                <Link href={`/brand/orders/purchase-orders/${order.id}`}>
-                                  <Eye className="h-4 w-4" />
-                                </Link>
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      )
-                    })}
+                            <span className="text-sm text-gray-600">
+                              {order.progress}%
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className={getScheduleStatusColor(order.scheduleStatus)}>
+                            {format(order.dueDate, 'MMM d')}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          ${order.value.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button variant="ghost" size="sm" asChild>
+                              <Link href={`/brand/messaging?order=${order.id}`}>
+                                <MessageSquare className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                            <Button variant="ghost" size="sm" asChild>
+                              <Link href={`/brand/orders/purchase-orders/${order.id}`}>
+                                <Eye className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -571,11 +628,9 @@ export function BrandOrdersList() {
                 }
               </p>
               {!searchTerm && statusFilter === 'all' && factoryFilter === 'all' && (
-                <Button asChild>
-                  <Link href="/brand/orders/new">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Your First PO
-                  </Link>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First PO
                 </Button>
               )}
             </CardContent>

@@ -29,7 +29,22 @@ export function BrandBillingPayment() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <PaymentMethods />
-        <BillingProfileForm initialData={mockBrandProfile} />
+        <BillingProfileForm 
+          profile={{
+            companyName: mockBrandProfile.companyName,
+            address: {
+              line1: mockBrandProfile.address,
+              city: mockBrandProfile.city,
+              state: mockBrandProfile.state,
+              postalCode: mockBrandProfile.zipCode,
+              country: mockBrandProfile.country
+            },
+            taxId: mockBrandProfile.taxId,
+            taxExempt: false
+          }}
+          onSave={(profile) => console.log('Profile saved:', profile)}
+          onCancel={() => console.log('Profile edit cancelled')}
+        />
       </div>
     </div>
   )

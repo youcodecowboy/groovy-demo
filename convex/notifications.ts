@@ -85,65 +85,8 @@ export const getNotifications = query({
       notifications = notifications.slice(0, args.limit);
     }
 
-    // If no notifications exist, create some sample ones for demo
-    if (notifications.length === 0) {
-      const sampleNotifications = [
-        {
-          userId: args.userId,
-          type: "item.flagged",
-          title: "Item Flagged for Review",
-          message: "Item ITM-001 has been flagged for quality review",
-          itemId: "ITM-001",
-          isRead: false,
-          priority: "warning",
-          createdAt: Date.now() - 300000, // 5 minutes ago
-          metadata: { flaggedBy: "john@example.com", reason: "Quality concern" }
-        },
-        {
-          userId: args.userId,
-          type: "order.completed",
-          title: "Order Completed",
-          message: "Purchase order PO-2024-001 has been completed successfully",
-          orderId: "PO-2024-001",
-          isRead: false,
-          priority: "success",
-          createdAt: Date.now() - 1800000, // 30 minutes ago
-          metadata: { completedBy: "jane@example.com", completionTime: "2.5 hours" }
-        },
-        {
-          userId: args.userId,
-          type: "materials.lowstock",
-          title: "Materials Low Stock Alert",
-          message: "Cotton fabric is running low (5 units remaining)",
-          isRead: true,
-          priority: "medium",
-          createdAt: Date.now() - 7200000, // 2 hours ago
-          metadata: { materialId: "MAT-001", currentStock: 5, reorderPoint: 10 }
-        },
-        {
-          userId: args.userId,
-          type: "message.inbound",
-          title: "New Message from Factory",
-          message: "Factory ABC has sent a message regarding order PO-2024-002",
-          isRead: true,
-          priority: "info",
-          createdAt: Date.now() - 14400000, // 4 hours ago
-          metadata: { senderId: "factory@abc.com", orderId: "PO-2024-002" }
-        }
-      ];
-
-      // Insert sample notifications
-      for (const notification of sampleNotifications) {
-        await ctx.db.insert("notifications", notification);
-      }
-
-      // Return the newly created notifications
-      notifications = await ctx.db
-        .query("notifications")
-        .withIndex("by_user", (q) => q.eq("userId", args.userId))
-        .order("desc")
-        .collect();
-    }
+    // If no notifications exist, return empty array
+    // Sample notifications should be created via mutations, not queries
 
     return notifications;
   },

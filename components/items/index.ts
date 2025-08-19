@@ -16,6 +16,6 @@ export { AuditLog } from './audit-log'
 // Existing Components
 export { ItemActions } from './item-actions'
 export { ItemDetailView } from './item-detail-view'
-export { ItemsTable } from './items-table'
+export { default as ItemsTable } from './items-table'
 export { ModernItemGenerator } from './modern-item-generator'
 export { AttributeBuilder } from './attribute-builder'

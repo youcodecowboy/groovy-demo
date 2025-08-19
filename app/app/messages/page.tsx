@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, Suspense } from "react"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useSearchParams } from "next/navigation"
@@ -18,7 +18,7 @@ import { useUser } from "@/components/ui/mock-auth-components"
 import { useToast } from "@/hooks/use-toast"
 import { NotificationList, NotificationRulesTable, NotificationPrefsForm } from "@/components/notifications"
 
-export default function MessagesPage() {
+function MessagesPageContent() {
   const { toast } = useToast()
   const { user } = useUser()
   const searchParams = useSearchParams()
@@ -389,6 +389,14 @@ export default function MessagesPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={<div>Loading messages...</div>}>
+      <MessagesPageContent />
+    </Suspense>
   )
 }
 
