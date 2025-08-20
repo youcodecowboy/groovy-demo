@@ -83,14 +83,25 @@ export default function WorkflowsPage() {
           <h1 className="text-3xl font-bold text-gray-900">Workflow Library</h1>
           <p className="text-gray-600 mt-1">Manage your production workflows</p>
         </div>
-        <Button 
-          onClick={() => router.push("/app/workflows/builder")}
-          size="lg"
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          Create Workflow
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button 
+            onClick={() => router.push("/app/workflows/builder2")}
+            size="lg"
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            New Builder
+          </Button>
+          <Button 
+            onClick={() => router.push("/app/workflows/builder")}
+            size="lg"
+            variant="outline"
+            className="border-2 border-gray-300"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Legacy Builder
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filters */}
