@@ -88,6 +88,8 @@ export default function DiscoFloorPage() {
         isScannerOpen={isScannerOpen}
         onScannerToggle={() => setIsScannerOpen(!isScannerOpen)}
         currentTeam={selectedTeam}
+        userId="disco-user@demo"
+        factoryId="demo-factory"
       />
     </div>
   )
