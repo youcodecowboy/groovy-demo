@@ -1207,11 +1207,15 @@ export const createInfrastructure = mutation({
         contactPerson: "Sarah Johnson",
         address: "123 Space Station Blvd, Orbit City, OC 12345",
         phone: "+1-555-0123",
-        website: "https://galactic.com",
-        industry: "Textile Manufacturing",
         isActive: true,
         createdAt: Date.now(),
         updatedAt: Date.now(),
+        metadata: {
+          website: "https://galactic.com",
+          industry: "Textile Manufacturing",
+          theme: "Star Wars",
+          specialization: "Lightsaber Manufacturing"
+        },
       });
       
       const brand2Id = await ctx.db.insert("brands", {
@@ -1221,11 +1225,15 @@ export const createInfrastructure = mutation({
         contactPerson: "Mike Chen",
         address: "456 Nebula Drive, Star Town, ST 67890",
         phone: "+1-555-0456",
-        website: "https://stellar.com",
-        industry: "Fashion Manufacturing",
         isActive: true,
         createdAt: Date.now(),
         updatedAt: Date.now(),
+        metadata: {
+          website: "https://stellar.com",
+          industry: "Fashion Manufacturing",
+          theme: "Star Wars",
+          specialization: "Imperial Equipment"
+        },
       });
       
       const brand3Id = await ctx.db.insert("brands", {
@@ -1235,11 +1243,15 @@ export const createInfrastructure = mutation({
         contactPerson: "Leia Organa",
         address: "789 Resistance Blvd, Rebel Base, RB 11111",
         phone: "+1-555-0789",
-        website: "https://rebellion.com",
-        industry: "Military Equipment",
         isActive: true,
         createdAt: Date.now(),
         updatedAt: Date.now(),
+        metadata: {
+          website: "https://rebellion.com",
+          industry: "Military Equipment",
+          theme: "Star Wars",
+          specialization: "Mandalorian Armor"
+        },
       });
       
       // Create factories
@@ -1247,10 +1259,25 @@ export const createInfrastructure = mutation({
         orgId,
         name: "Galactic Factory Alpha",
         location: "Orbit City Industrial Zone",
-        adminUserId: "admin-1",
+        adminUserId: "chaos-mode-admin-1",
+        isActive: true,
         capacity: 1000,
-        specializations: ["Precision Manufacturing", "Lightsaber Production", "Energy Weapons"],
-        equipment: ["Precision Cutting", "Crystal Assembly", "Energy Calibration"],
+        specialties: ["Precision Manufacturing", "Lightsaber Production", "Energy Weapons"],
+        publicProfile: {
+          isEnabled: true,
+          description: "Specialized in precision lightsaber manufacturing for the Galactic Republic",
+          leadTime: 14,
+          responseTime: 2,
+          whatWeMake: "Lightsabers, Energy Weapons, Precision Components",
+          minimumOrderQuantity: 100,
+          paymentTerms: "Net 30",
+          shippingInfo: "Galactic standard shipping available",
+          contactInfo: {
+            email: "orders@galactic-alpha.com",
+            phone: "+1-555-ALPHA",
+            website: "https://galactic-alpha.com"
+          }
+        },
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
@@ -1259,10 +1286,25 @@ export const createInfrastructure = mutation({
         orgId,
         name: "Imperial Factory Beta",
         location: "Death Star Manufacturing District",
-        adminUserId: "admin-2",
+        adminUserId: "chaos-mode-admin-2",
+        isActive: true,
         capacity: 1500,
-        specializations: ["Armor Production", "Heavy Equipment", "Imperial Grade"],
-        equipment: ["Advanced Forging", "Armor Assembly", "Quality Assurance"],
+        specialties: ["Armor Production", "Heavy Equipment", "Imperial Grade"],
+        publicProfile: {
+          isEnabled: true,
+          description: "High-quality Imperial armor and equipment manufacturing",
+          leadTime: 21,
+          responseTime: 1,
+          whatWeMake: "Imperial Armor, Helmets, Military Equipment",
+          minimumOrderQuantity: 250,
+          paymentTerms: "Net 15",
+          shippingInfo: "Imperial fleet delivery",
+          contactInfo: {
+            email: "orders@imperial-beta.com",
+            phone: "+1-555-EMPIRE",
+            website: "https://imperial-beta.com"
+          }
+        },
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
@@ -1271,10 +1313,25 @@ export const createInfrastructure = mutation({
         orgId,
         name: "Mandalorian Forge Gamma",
         location: "Mandalore Production Complex",
-        adminUserId: "admin-3",
+        adminUserId: "chaos-mode-admin-3",
+        isActive: true,
         capacity: 2000,
-        specializations: ["Beskar Working", "Rapid Production", "Traditional Crafts"],
-        equipment: ["Beskar Forge", "Mass Production Line", "Traditional Tools"],
+        specialties: ["Beskar Working", "Rapid Production", "Traditional Crafts"],
+        publicProfile: {
+          isEnabled: true,
+          description: "Traditional Mandalorian forge specializing in beskar armor",
+          leadTime: 7,
+          responseTime: 4,
+          whatWeMake: "Beskar Armor, Mandalorian Helmets, Traditional Weapons",
+          minimumOrderQuantity: 500,
+          paymentTerms: "Payment on delivery",
+          shippingInfo: "This is the Way - secure delivery guaranteed",
+          contactInfo: {
+            email: "forge@mandalore-gamma.com",
+            phone: "+1-555-BESKAR",
+            website: "https://mandalore-gamma.com"
+          }
+        },
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
