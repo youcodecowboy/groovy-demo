@@ -621,4 +621,90 @@ export default defineSchema({
     brandId: v.optional(v.id("brands")), // If visitor is a known brand
     createdAt: v.number(),
   }).index("by_factory", ["factoryId"]).index("by_visitor_type", ["visitorType"]).index("by_action", ["actionTaken"]),
+
+  // ============================================================================
+  // CHAOS MODE TABLES - Testing system for automated factory simulation
+  // ============================================================================
+
+  // Chaos mode control - central control system
+  chaosModeControl: defineTable({
+    orgId: v.id("organizations"),
+    isActive: v.boolean(),
+    mode: v.union(v.literal("stopped"), v.literal("test-fire"), v.literal("full-chaos"), v.literal("paused")),
+    startTime: v.optional(v.number()),
+    uptime: v.optional(v.number()),
+    settings: v.object({
+      scanIntervals: v.object({ min: v.number(), max: v.number() }),
+      stageIntervals: v.object({ min: v.number(), max: v.number() }),
+      problemIntervals: v.object({ min: v.number(), max: v.number() }),
+      messageIntervals: v.object({ min: v.number(), max: v.number() }),
+    }),
+    currentOrders: v.array(v.string()),
+    errorCount: v.number(),
+    lastActivity: v.number(),
+    // Statistics
+    totalItemsCreated: v.optional(v.number()),
+    totalItemsCompleted: v.optional(v.number()),
+    totalScans: v.optional(v.number()),
+    totalNotifications: v.optional(v.number()),
+    totalMessages: v.optional(v.number()),
+    // Test fire tracking
+    testFireInProgress: v.optional(v.boolean()),
+    testFireProgress: v.optional(v.number()),
+    testFireResults: v.optional(v.any()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_org", ["orgId"]),
+
+  // Chaos mode error log
+  chaosModeErrors: defineTable({
+    orgId: v.id("organizations"),
+    timestamp: v.number(),
+    type: v.union(v.literal("critical"), v.literal("warning"), v.literal("info")),
+    category: v.string(),
+    message: v.string(),
+    details: v.any(),
+    orderId: v.optional(v.string()),
+    itemId: v.optional(v.string()),
+    stageId: v.optional(v.string()),
+    resolved: v.boolean(),
+    resolvedAt: v.optional(v.number()),
+    resolvedBy: v.optional(v.string()),
+  }).index("by_org", ["orgId"]).index("by_type", ["type"]).index("by_timestamp", ["timestamp"]),
+
+  // Chaos mode activity log
+  chaosModeActivity: defineTable({
+    orgId: v.id("organizations"),
+    timestamp: v.number(),
+    action: v.string(),
+    orderId: v.optional(v.string()),
+    itemId: v.optional(v.string()),
+    stageId: v.optional(v.string()),
+    details: v.any(),
+  }).index("by_org", ["orgId"]).index("by_timestamp", ["timestamp"]),
+
+  // Chaos mode orders - specialized order tracking for chaos mode
+  chaosModeOrders: defineTable({
+    orgId: v.id("organizations"),
+    poNumber: v.string(),
+    description: v.string(),
+    brandId: v.id("brands"),
+    factoryId: v.id("factories"),
+    workflowId: v.id("workflows"),
+    status: v.union(v.literal("pending"), v.literal("accepted"), v.literal("in_production"), v.literal("completed")),
+    theme: v.string(), // "Star Wars", etc.
+    totalItems: v.number(),
+    completedItems: v.number(),
+    currentStage: v.string(),
+    estimatedCompletion: v.number(),
+    chaosSettings: v.object({
+      scanInterval: v.number(),
+      stageInterval: v.number(),
+      problemInterval: v.number(),
+      messageInterval: v.number(),
+    }),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_org", ["orgId"]).index("by_status", ["status"]).index("by_theme", ["theme"]),
+
 }); 
