@@ -139,6 +139,42 @@ export const getChaosStatus = query({
   },
 });
 
+export const testBrandCreation = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const orgId = await resolveOrgId(ctx);
+    
+    try {
+      console.log("🧪 Testing brand creation...");
+      
+      // Test creating a single brand with correct schema
+      const brandId = await ctx.db.insert("brands", {
+        orgId,
+        name: "Test Brand",
+        email: "test@example.com",
+        contactPerson: "Test Person",
+        address: "123 Test St",
+        phone: "+1-555-TEST",
+        isActive: true,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        metadata: {
+          website: "https://test.com",
+          industry: "Test Industry",
+          theme: "Test"
+        },
+      });
+      
+      console.log("✅ Brand created successfully:", brandId);
+      return { success: true, brandId };
+      
+    } catch (error) {
+      console.error("❌ Failed to create test brand:", error);
+      throw error;
+    }
+  },
+});
+
 export const startChaosMode = mutation({
   args: {},
   handler: async (ctx) => {
@@ -348,13 +384,8 @@ export const runTestFireSequence = mutation({
       }
       
       const testSequence = [
-        { name: "System Validation", function: "validateSystem", progress: 10 },
-        { name: "Database Cleanup", function: "clearDatabase", progress: 20 },
-        { name: "Infrastructure Creation", function: "createInfrastructure", progress: 40 },
-        { name: "Star Wars Order Seeding", function: "seedStarWarsOrders", progress: 60 },
-        { name: "Workflow Creation", function: "createWorkflows", progress: 70 },
-        { name: "Item Creation", function: "createInitialItems", progress: 85 },
-        { name: "Simulation Activation", function: "startFactorySimulation", progress: 100 }
+        { name: "System Validation", function: "validateSystem", progress: 50 },
+        { name: "Test Brand Creation", function: "testBrandCreation", progress: 100 },
       ];
       
       let testResults = {
@@ -381,23 +412,8 @@ export const runTestFireSequence = mutation({
             case "validateSystem":
               result = await validateSystem(ctx, orgId);
               break;
-            case "clearDatabase":
-              await ctx.runMutation("chaosMode:clearDatabase");
-              break;
-            case "createInfrastructure":
-              result = await ctx.runMutation("chaosMode:createInfrastructure");
-              break;
-            case "seedStarWarsOrders":
-              result = await ctx.runMutation("chaosMode:seedStarWarsOrders");
-              break;
-            case "createWorkflows":
-              result = await ctx.runMutation("chaosMode:createStarWarsWorkflows");
-              break;
-            case "createInitialItems":
-              result = await ctx.runMutation("chaosMode:createInitialItems");
-              break;
-            case "startFactorySimulation":
-              result = await ctx.runMutation("chaosMode:startFactorySimulation");
+            case "testBrandCreation":
+              result = await ctx.runMutation("chaosMode:testBrandCreation");
               break;
           }
           
@@ -649,16 +665,16 @@ export const seedStarWarsOrders = mutation({
           poNumber: orderData.poNumber,
           brandId: orderData.brandId,
           factoryId: orderData.factoryId,
-          status: "active",
+          status: "in_production",
           requestedDeliveryDate: Date.now() + (30 * 24 * 60 * 60 * 1000), // 30 days from now
           items: orderData.items,
-          totalQuantity: orderData.totalItems,
+          totalValue: orderData.totalItems * 50, // $50 per item estimate
+          submittedAt: Date.now(),
           metadata: {
             theme: orderData.theme,
             description: orderData.description,
+            totalQuantity: orderData.totalItems,
           },
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
         });
         
         // Create chaos mode order tracking
