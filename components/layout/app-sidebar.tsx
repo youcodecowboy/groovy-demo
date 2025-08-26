@@ -65,6 +65,7 @@ import {
 import { SignedIn, UserButton } from "@/components/ui/mock-auth-components"
 import { FeatureManager } from "./feature-manager"
 import { HeaderBell } from "@/components/notifications"
+import { ChaosControlPanel } from "@/components/chaos-mode/chaos-control-panel"
 
 // Feature configuration mapping
 const featureConfig = {
@@ -322,7 +323,10 @@ export function AppSidebar({ children }: AppSidebarProps) {
         <header className="flex h-16 shrink-0 items-center gap-2 border-b-2 border-black bg-white px-8 md:px-10">
           <SidebarTrigger className="-ml-1" />
           <div className="flex-1" />
-          <HeaderBell />
+          <div className="flex items-center gap-2">
+            <HeaderBell />
+            <ChaosControlPanel />
+          </div>
         </header>
         <div className="p-8 md:p-10">
           {children}
