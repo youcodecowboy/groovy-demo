@@ -1774,6 +1774,7 @@ export const getItemsByTeam = query({
   handler: async (ctx, args) => {
     // Map team names to stage names for filtering
     const teamStageMap: Record<string, string[]> = {
+      all: [], // "all" means no filtering by stage
       production: ["Assembly", "Production", "Manufacturing"],
       cutting: ["Cut", "Cutting", "Fabric Cutting"],
       sewing: ["Sew", "Sewing", "Assembly"],
@@ -1794,7 +1795,11 @@ export const getItemsByTeam = query({
     const workflows = await Promise.all(
       workflowIds.map(id => ctx.db.get(id))
     )
-    const workflowMap = new Map(workflows.map(w => [w?._id, w]).filter(([_, w]) => w))
+    const workflowMap = new Map(
+      workflows
+        .filter((w): w is NonNullable<typeof w> => w !== null)
+        .map(w => [w._id, w])
+    )
 
     // Filter items by team's stages and factory
     const teamItems = allItems.filter(item => {
@@ -1805,8 +1810,8 @@ export const getItemsByTeam = query({
       const currentStage = workflow.stages.find((s: any) => s.id === item.currentStageId)
       if (!currentStage) return false
       
-      // Check if current stage matches team's stages
-      const stageMatches = stageNames.some(name => 
+      // If "all" is selected, don't filter by stage names
+      const stageMatches = args.teamId === "all" || stageNames.some(name => 
         currentStage.name.toLowerCase().includes(name.toLowerCase())
       )
       

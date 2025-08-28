@@ -621,4 +621,225 @@ export default defineSchema({
     brandId: v.optional(v.id("brands")), // If visitor is a known brand
     createdAt: v.number(),
   }).index("by_factory", ["factoryId"]).index("by_visitor_type", ["visitorType"]).index("by_action", ["actionTaken"]),
+  // Disco 3B LLM Integration Tables
+  recordsEnriched: defineTable({
+    orgId: v.id("organizations"),
+    factoryId: v.string(),
+    originalText: v.string(),
+    scanType: v.union(v.literal("qr"), v.literal("barcode"), v.literal("manual"), v.literal("note")),
+    enrichment: v.object({
+      labels: v.array(v.string()),
+      entities: v.array(v.string()),
+      fields: v.optional(v.object({
+        sku: v.optional(v.string()),
+        po_number: v.optional(v.string()),
+        stage: v.optional(v.string()),
+        location: v.optional(v.string()),
+        quantity: v.optional(v.number()),
+        eta: v.optional(v.string()),
+        priority: v.optional(v.union(v.literal("LOW"), v.literal("MEDIUM"), v.literal("HIGH"), v.literal("CRITICAL"))),
+        assigned_to: v.optional(v.string()),
+      })),
+    }),
+    anomaly: v.optional(v.object({
+      is_anomaly: v.boolean(),
+      severity: v.optional(v.union(v.literal("INFO"), v.literal("WARN"), v.literal("CRITICAL"))),
+      reason: v.optional(v.string()),
+      confidence: v.number(),
+      metrics: v.optional(v.any()),
+    })),
+    embeddingId: v.optional(v.id("embeddings")),
+    userId: v.string(),
+    createdAt: v.number(),
+    metadata: v.optional(v.any()),
+  }).index("by_factory", ["factoryId"]).index("by_user", ["userId"]).index("by_created", ["createdAt"]).searchIndex("search_text", {
+    searchField: "originalText",
+    filterFields: ["factoryId", "scanType", "userId"]
+  }),
+
+  embeddings: defineTable({
+    orgId: v.id("organizations"),
+    docId: v.string(),
+    factoryId: v.string(),
+    embedding: v.array(v.number()),
+    text: v.string(),
+    metadata: v.optional(v.any()),
+    model: v.string(),
+    createdAt: v.number(),
+  }).index("by_factory", ["factoryId"]).index("by_doc", ["docId"]).vectorIndex("by_embedding", {
+    vectorField: "embedding",
+    dimensions: 768,
+    filterFields: ["factoryId", "model"]
+  }),
+
+
+
+  alerts: defineTable({
+    orgId: v.id("organizations"),
+    factoryId: v.string(),
+    level: v.union(v.literal("INFO"), v.literal("WARN"), v.literal("CRITICAL")),
+    title: v.string(),
+    details: v.string(),
+    owner: v.optional(v.string()),
+    status: v.union(v.literal("open"), v.literal("acknowledged"), v.literal("resolved")),
+    createdAt: v.number(),
+    resolvedAt: v.optional(v.number()),
+    resolvedBy: v.optional(v.string()),
+  }).index("by_factory", ["factoryId"]).index("by_status", ["status"]).index("by_level", ["level"]).index("by_created", ["createdAt"]),
+
+  escalations: defineTable({
+    orgId: v.id("organizations"),
+    factoryId: v.string(),
+    kind: v.union(v.literal("report"), v.literal("analysis"), v.literal("workflow")),
+    details: v.string(),
+    requester: v.string(),
+    status: v.union(v.literal("open"), v.literal("in_progress"), v.literal("done")),
+    assignedTo: v.optional(v.string()),
+    createdAt: v.number(),
+    completedAt: v.optional(v.number()),
+  }).index("by_factory", ["factoryId"]).index("by_status", ["status"]).index("by_requester", ["requester"]).index("by_created", ["createdAt"]),
+
+  feedback: defineTable({
+    orgId: v.id("organizations"),
+    factoryId: v.string(),
+    recordId: v.string(),
+    userId: v.string(),
+    type: v.union(v.literal("thumbs_up"), v.literal("thumbs_down"), v.literal("correction")),
+    feedback: v.optional(v.string()),
+    correction: v.optional(v.any()),
+    createdAt: v.number(),
+  }).index("by_factory", ["factoryId"]).index("by_record", ["recordId"]).index("by_user", ["userId"]),
+
+  chatSessions: defineTable({
+    orgId: v.id("organizations"),
+    factoryId: v.string(),
+    userId: v.string(),
+    title: v.string(),
+    summary: v.optional(v.string()),
+    messageCount: v.number(),
+    lastMessageAt: v.number(),
+    createdAt: v.number(),
+    isActive: v.boolean(),
+  }).index("by_factory", ["factoryId"]).index("by_user", ["userId"]).index("by_created", ["createdAt"]).index("by_active", ["isActive"]),
+
+  chatTurns: defineTable({
+    orgId: v.id("organizations"),
+    factoryId: v.string(),
+    userId: v.string(),
+    sessionId: v.optional(v.id("chatSessions")),
+    question: v.string(),
+    answer: v.string(),
+    citations: v.array(v.string()),
+    enrichment: v.object({
+      labels: v.array(v.string()),
+      entities: v.array(v.string()),
+      fields: v.optional(v.any()),
+    }),
+    retrievedIds: v.optional(v.array(v.string())),
+    confidence: v.number(),
+    createdAt: v.number(),
+  }).index("by_factory", ["factoryId"]).index("by_user", ["userId"]).index("by_created", ["createdAt"]).index("by_session", ["sessionId"]),
+
+  // Disco notification preferences
+  discoNotificationPreferences: defineTable({
+    orgId: v.id("organizations"),
+    factoryId: v.string(),
+    notificationsEnabled: v.boolean(),
+    notificationFrequency: v.union(
+      v.literal("immediate"),
+      v.literal("batched"),
+      v.literal("hourly"),
+      v.literal("daily")
+    ),
+    batchInterval: v.optional(v.number()),
+    quietHoursEnabled: v.optional(v.boolean()),
+    quietHoursStart: v.optional(v.string()),
+    quietHoursEnd: v.optional(v.string()),
+    defaultRecipient: v.string(),
+    notificationTypes: v.object({
+      quality_issues: v.boolean(),
+      production_updates: v.boolean(),
+      machine_alerts: v.boolean(),
+      inventory_alerts: v.boolean(),
+      schedule_changes: v.boolean(),
+      general_messages: v.boolean(),
+    }),
+    priorityThreshold: v.union(
+      v.literal("low"),
+      v.literal("medium"),
+      v.literal("high"),
+      v.literal("urgent")
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_factory", ["factoryId"]).index("by_org", ["orgId"]),
+
+  // Chaos Mode Tables
+  chaosModeControl: defineTable({
+    orgId: v.id("organizations"),
+    isActive: v.boolean(),
+    mode: v.union(v.literal("stopped"), v.literal("paused"), v.literal("full-chaos"), v.literal("test-fire")),
+    startTime: v.number(),
+    settings: v.object({
+      scanIntervals: v.object({ min: v.number(), max: v.number() }),
+      stageIntervals: v.object({ min: v.number(), max: v.number() }),
+      problemIntervals: v.object({ min: v.number(), max: v.number() }),
+      messageIntervals: v.object({ min: v.number(), max: v.number() }),
+    }),
+    currentOrders: v.array(v.string()),
+    errorCount: v.number(),
+    lastActivity: v.number(),
+    testFireProgress: v.optional(v.object({
+      currentTest: v.string(),
+      completedTests: v.array(v.string()),
+      totalTests: v.number(),
+      isCompleted: v.boolean(),
+      errors: v.array(v.string()),
+    })),
+    manualScanProgress: v.optional(v.object({
+      currentScan: v.number(),
+      totalScans: v.number(),
+      completedAt: v.optional(v.number()),
+    })),
+  }).index("by_org", ["orgId"]),
+
+  chaosModeErrors: defineTable({
+    orgId: v.id("organizations"),
+    timestamp: v.number(),
+    type: v.union(v.literal("critical"), v.literal("warning"), v.literal("info")),
+    category: v.string(),
+    message: v.string(),
+    details: v.optional(v.any()),
+    orderId: v.optional(v.string()),
+    itemId: v.optional(v.string()),
+    stageId: v.optional(v.string()),
+    resolved: v.boolean(),
+  }).index("by_org", ["orgId"]).index("by_type", ["type"]).index("by_timestamp", ["timestamp"]),
+
+  chaosModeActivity: defineTable({
+    orgId: v.id("organizations"),
+    timestamp: v.number(),
+    action: v.string(),
+    orderId: v.optional(v.string()),
+    itemId: v.optional(v.string()),
+    stageId: v.optional(v.string()),
+    userId: v.optional(v.string()),
+    details: v.optional(v.any()),
+  }).index("by_org", ["orgId"]).index("by_timestamp", ["timestamp"]),
+
+  chaosModeOrders: defineTable({
+    orgId: v.id("organizations"),
+    orderId: v.string(),
+    poNumber: v.string(),
+    brandId: v.id("brands"),
+    factoryId: v.id("factories"),
+    workflowId: v.id("workflows"),
+    status: v.string(),
+    totalItems: v.number(),
+    completedItems: v.number(),
+    defectiveItems: v.number(),
+    startedAt: v.number(),
+    updatedAt: v.number(),
+    metadata: v.optional(v.any()),
+  }).index("by_org", ["orgId"]).index("by_order", ["orderId"]),
 }); 

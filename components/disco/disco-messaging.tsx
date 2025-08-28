@@ -25,7 +25,7 @@ interface Message {
 
 interface DiscoMessagingProps {
   messages: Message[]
-  onSendMessage?: (text: string, recipients: string[]) => Promise<void>
+  onSendMessage?: (text: string, recipients: string[], type?: 'user' | 'system' | 'automated') => Promise<void>
   currentUser?: string
   itemId: string
 }
@@ -46,7 +46,7 @@ export function DiscoMessaging({
 
     setIsSending(true)
     try {
-      await onSendMessage?.(newMessage.trim(), ['admin@demo']) // Default to admin
+      await onSendMessage?.(newMessage.trim(), ['admin@demo'], 'automated') // Added 'automated' type
       setNewMessage("")
       setShowAddForm(false)
       toast({

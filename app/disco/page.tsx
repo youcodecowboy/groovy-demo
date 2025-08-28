@@ -14,7 +14,7 @@ import { TeamSelector } from "@/components/disco/team-selector"
 export default function DiscoFloorPage() {
   const { toast } = useToast()
   const router = useRouter()
-  const [selectedTeam, setSelectedTeam] = useState<string>("production")
+  const [selectedTeam, setSelectedTeam] = useState<string>("all")
   const [isScannerOpen, setIsScannerOpen] = useState(false)
 
   // Mutations
@@ -88,6 +88,8 @@ export default function DiscoFloorPage() {
         isScannerOpen={isScannerOpen}
         onScannerToggle={() => setIsScannerOpen(!isScannerOpen)}
         currentTeam={selectedTeam}
+        userId="disco-user@demo"
+        factoryId="m972psr224txp1ymcefy492v9h7nxq50"
       />
     </div>
   )

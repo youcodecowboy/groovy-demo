@@ -14,6 +14,8 @@ import { QRScanner } from '@/components/ui/qr-scanner'
 import { useToast } from '@/hooks/use-toast'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '@/convex/_generated/api'
+import { DiscoChatPanel } from './disco-chat-panel'
+import { isDiscoChatEnabled } from '@/lib/client-feature-flags'
 import { 
   ScanLine, 
   Menu, 
@@ -30,7 +32,8 @@ import {
   Clock, 
   CheckCircle, 
   FileText, 
-  Calendar 
+  Calendar,
+  Bot
 } from 'lucide-react'
 
 interface DiscoFooterProps {
@@ -38,6 +41,8 @@ interface DiscoFooterProps {
   isScannerOpen: boolean
   onScannerToggle: () => void
   currentTeam?: string
+  userId?: string
+  factoryId?: string
 }
 
 interface Message {
@@ -76,9 +81,10 @@ interface Task {
 }
 
 export const DiscoFooter = forwardRef<{ handleOpenMessagePanel: (attachedItemId?: string) => void }, DiscoFooterProps>(
-  ({ onScan, isScannerOpen, onScannerToggle, currentTeam = "production" }, ref) => {
+  ({ onScan, isScannerOpen, onScannerToggle, currentTeam = "all", userId = "disco-user", factoryId = "demo-factory" }, ref) => {
   const [isProcessing, setIsProcessing] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isChatOpen, setIsChatOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'inbox' | 'messages' | 'notifications'>('inbox')
   const [viewMode, setViewMode] = useState<'inbox' | 'compose'>('inbox')
   const [newMessage, setNewMessage] = useState('')
@@ -991,6 +997,17 @@ export const DiscoFooter = forwardRef<{ handleOpenMessagePanel: (attachedItemId?
               </SheetContent>
             </Sheet>
 
+            {/* Chat Button - Floating Action Button Style (Feature-flagged) */}
+            {isDiscoChatEnabled() && (
+              <Button
+                size="lg"
+                onClick={() => setIsChatOpen(!isChatOpen)}
+                className="rounded-full w-16 h-16 shadow-lg transition-all duration-200 bg-blue-500 hover:bg-blue-600 text-white hover:scale-105 mr-4"
+              >
+                <Bot className="w-8 h-8" />
+              </Button>
+            )}
+
             {/* QR Scan Button - Floating Action Button Style */}
             <Button
               size="lg"
@@ -1034,6 +1051,17 @@ export const DiscoFooter = forwardRef<{ handleOpenMessagePanel: (attachedItemId?
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Chat Panel (Feature-flagged) */}
+      {isDiscoChatEnabled() && (
+        <DiscoChatPanel
+          userId={userId}
+          factoryId={factoryId}
+          isOpen={isChatOpen}
+          onToggle={() => setIsChatOpen(!isChatOpen)}
+          currentTeam={currentTeam}
+        />
+      )}
     </>
   )
 })

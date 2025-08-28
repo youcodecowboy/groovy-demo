@@ -132,7 +132,7 @@ export function WorkflowEditor() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between p-3 rounded-lg bg-zinc-50">
-              <span className="text-sm">Block if QC fail rate > {qcFailThreshold}%</span>
+              <span className="text-sm">Block if QC fail rate &gt; {qcFailThreshold}%</span>
               <input
                 type="range"
                 min="1"
@@ -144,7 +144,7 @@ export function WorkflowEditor() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary">Require Scan between stages</Badge>
-              <Badge variant="secondary">Block if QC fail > {qcFailThreshold}%</Badge>
+              <Badge variant="secondary">Block if QC fail &gt; {qcFailThreshold}%</Badge>
             </div>
           </CardContent>
         </Card>

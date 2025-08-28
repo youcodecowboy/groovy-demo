@@ -13,3 +13,5 @@ export { DiscoQRCard } from './disco-qr-card'
 export { DiscoMessaging } from './disco-messaging'
 export { DiscoAttachments } from './disco-attachments'
 export { DiscoQuickActions } from './disco-quick-actions'
+// Disco 3B LLM Integration Components
+export { DiscoChatPanel } from './disco-chat-panel'

@@ -10,6 +10,7 @@ interface TeamSelectorProps {
 }
 
 const teams = [
+  { id: "all", name: "All Items", color: "bg-gray-100 text-gray-800 border-gray-200" },
   { id: "production", name: "Production", color: "bg-blue-100 text-blue-800 border-blue-200" },
   { id: "cutting", name: "Cutting", color: "bg-red-100 text-red-800 border-red-200" },
   { id: "sewing", name: "Sewing", color: "bg-orange-100 text-orange-800 border-orange-200" },
@@ -22,7 +23,7 @@ export function TeamSelector({ selectedTeam, onTeamChange }: TeamSelectorProps) 
 
   return (
     <div className="flex items-center gap-3">
-      <span className="text-sm font-medium text-gray-700">Team:</span>
+      <span className="text-sm font-medium text-gray-700">View:</span>
       
       {/* Team Tabs */}
       <div className="flex gap-2">

@@ -1,4 +1,5 @@
-import type { QueryCtx, MutationCtx } from "./_generated/server"
+import type { QueryCtx, MutationCtx, ActionCtx } from "./_generated/server"
+import { query } from "./_generated/server"
 
 // Mock user identity for development (no auth)
 const MOCK_USER_ID = "mock-user-123"
@@ -18,6 +19,25 @@ export async function resolveOrgId(ctx: QueryCtx | MutationCtx) {
   
   return membership.orgId
 }
+
+// Query function to get org ID (can be called from actions)
+export const getOrgId = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = { tokenIdentifier: MOCK_USER_ID }
+    
+    const membership = await ctx.db
+      .query("memberships")
+      .withIndex("by_user", (q) => q.eq("userId", identity.tokenIdentifier))
+      .first()
+    
+    if (!membership) {
+      throw new Error("No organization found for user")
+    }
+    
+    return membership.orgId
+  }
+})
 
 // Helper function to ensure organization exists (for mutations only)
 export async function ensureOrgId(ctx: MutationCtx) {
